@@ -1,0 +1,35 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "marianoguerra/llm/openai"
+
+import {
+  "marianoguerra/llm",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn completions_api_spec() -> @llm.ApiSpec
+
+pub fn openai_model(String) -> @llm.ModelInfo
+
+pub fn openai_models() -> Array[@llm.ModelInfo]
+
+pub fn responses_api_spec() -> @llm.ApiSpec
+
+// Errors
+
+// Types and methods
+pub(all) struct OpenAiDialect {
+  model : String
+} derive(@debug.Debug)
+pub fn OpenAiDialect::make(model? : String) -> Self
+pub impl @llm.Dialect for OpenAiDialect
+
+pub(all) struct OpenAiResponsesDialect {
+  model : String
+} derive(@debug.Debug)
+pub fn OpenAiResponsesDialect::make(model? : String) -> Self
+pub impl @llm.Dialect for OpenAiResponsesDialect
+
+// Type aliases
+
+// Traits

@@ -1,26 +1,26 @@
-// Learn more about moon.mod configuration:
-// https://docs.moonbitlang.com/en/latest/toolchain/moon/module.html
-//
-// To add a dependency, run this command in your terminal:
-//   moon add moonbitlang/x
-//
-// Or manually declare it in `import`, for example:
-// import {
-//   "moonbitlang/x@0.4.6",
-// }
-
 name = "marianoguerra/llm"
 
 version = "0.1.0"
 
-readme = "README.mbt.md"
+readme = "README.md"
 
-repository = ""
+repository = "https://github.com/marianoguerra/llm-moonbit"
 
 license = "Apache-2.0"
 
-keywords = []
+keywords = [ "llm", "ai", "anthropic", "openai", "gemini", "moonbit" ]
 
-preferred_target = "wasm"
+description = "A dialect-agnostic LLM IR, one wire mapping per provider protocol, a data-driven provider registry, and a transport a browser can implement"
 
-description = ""
+// Every package here except `wire` is target-neutral, and that is the point:
+// a browser page lowers a context, picks a dialect and lifts a reply without
+// a server involved. So the default target is the one that proves it. `wire`
+// reads an environment and opens a socket and is native-only — `just check`
+// covers both, and CI runs that rather than a bare `moon check`.
+
+preferred_target = "wasm-gc"
+
+import {
+  "moonbitlang/async@0.20.3",
+  "moonbitlang/x@0.4.46",
+}

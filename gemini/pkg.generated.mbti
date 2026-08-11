@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "marianoguerra/llm/gemini"
+
+import {
+  "marianoguerra/llm",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn api_spec() -> @llm.ApiSpec
+
+// Errors
+
+// Types and methods
+pub(all) struct GeminiDialect {
+  model : String
+} derive(@debug.Debug)
+pub fn GeminiDialect::make(model? : String) -> Self
+pub impl @llm.Dialect for GeminiDialect
+
+// Type aliases
+
+// Traits

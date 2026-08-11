@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "marianoguerra/llm/catalog"
+
+import {
+  "marianoguerra/llm",
+}
+
+// Values
+pub fn anthropic_provider() -> @llm.ProviderSpec
+
+pub fn default_registry() -> @llm.Registry
+
+pub fn gemini_provider() -> @llm.ProviderSpec
+
+pub fn openai_provider() -> @llm.ProviderSpec
+
+pub fn openrouter_provider() -> @llm.ProviderSpec
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits

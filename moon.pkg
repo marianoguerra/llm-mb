@@ -1,0 +1,12 @@
+// The dialect-agnostic LLM layer: the IR every dialect trades in — modelled
+// on pi.dev's `Context` — plus the `Dialect` trait each provider protocol
+// implements, the `StreamEvent`s it decodes to, what a `ModelInfo` says a
+// model can be asked for, the `Registry` that ties providers to protocols,
+// and the `LlmTransport` that carries the bytes.
+//
+// No `supported_targets`: this has to compile to wasm-gc, because a page
+// lowering and lifting for itself is the deployment this exists to allow.
+// Only `wire`, which reads an environment and opens a socket, is native.
+import {
+  "moonbitlang/core/json",
+}

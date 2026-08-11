@@ -1,0 +1,17 @@
+// The default table: which providers exist, what they are called, where they
+// answer and which variable holds their key.
+//
+// Separate from `llm` because a consumer who wants the trait and the IR does
+// not necessarily want an opinion about which four vendors are interesting,
+// and separate from the dialects because it is the one place naming all four.
+//
+// Credential-free, and target-neutral for the same reason: this compiles into
+// a page, and a page has no secrets and no environment. What it names is
+// variables, endpoints and models. `wire` is what reads values for them.
+import {
+  "marianoguerra/llm",
+  "marianoguerra/llm/anthropic",
+  "marianoguerra/llm/gemini",
+  "marianoguerra/llm/openai",
+  "marianoguerra/llm/openrouter",
+}

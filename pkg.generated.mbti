@@ -1,0 +1,224 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "marianoguerra/llm"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn api_error(Json, model~ : String) -> ContextMessage?
+
+pub fn reply_identity(Json, fallback~ : String) -> (String, String?)
+
+pub fn split_label(String) -> (String, String)
+
+pub fn user_text(Array[UserBlock]) -> String
+
+// Errors
+pub(all) suberror DialectError {
+  MalformedReply(String)
+} derive(ToJson, @debug.Debug)
+pub impl Show for DialectError
+
+// Types and methods
+pub(all) struct ApiSpec {
+  id : String
+  make : (ModelInfo) -> &Dialect
+  caps : (String) -> ModelInfo
+}
+
+pub(all) enum AssistantBlock {
+  AssistantText(text~ : String, signature~ : String?)
+  Thinking(text~ : String, signature~ : String?, redacted~ : Bool)
+  ToolCall(id~ : String, name~ : String, arguments~ : Json, signature~ : String?)
+} derive(ToJson, @debug.Debug)
+
+pub(all) enum AuthStyle {
+  BearerHeader
+  KeyHeader(String)
+  KeyQuery(String)
+  NoAuth
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum CacheRetention {
+  NoCache
+  ShortCache
+  LongCache
+} derive(Eq, ToJson, @debug.Debug)
+pub fn CacheRetention::parse(String) -> Self?
+
+pub(all) enum ContextMessage {
+  UserMsg(content~ : Array[UserBlock])
+  AssistantMsg(content~ : Array[AssistantBlock], stop~ : StopReason, model~ : String, response_id~ : String?, usage~ : Usage?, error~ : String?)
+  ToolResultMsg(tool_call_id~ : String, tool_name~ : String, content~ : Array[UserBlock], is_error~ : Bool)
+} derive(ToJson, @debug.Debug)
+
+pub(all) struct Cost {
+  input : Double
+  output : Double
+  cache_read : Double
+  cache_write : Double
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct LlmContext {
+  system : String?
+  messages : Array[ContextMessage]
+  tools : Array[ToolDecl]
+  params : LlmParams
+} derive(ToJson, @debug.Debug)
+
+pub(all) struct LlmParams {
+  effort : ThinkingLevel?
+  pro_mode : Bool
+  reasoning_context : ReasoningContext?
+  reasoning_summary : Bool
+  max_output_tokens : Int?
+  cache_key : String?
+  cache_retention : CacheRetention
+} derive(ToJson, @debug.Debug)
+pub fn LlmParams::default() -> Self
+
+pub(all) enum Modality {
+  TextIn
+  ImageIn
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct ModelInfo {
+  id : String
+  api : String?
+  reasoning : Bool
+  thinking_levels : Array[(ThinkingLevel, String)]
+  supports_pro_mode : Bool
+  reasoning_contexts : Array[ReasoningContext]
+  input : Array[Modality]
+  context_window : Int
+  max_output_tokens : Int?
+  cost : Cost?
+} derive(ToJson, @debug.Debug)
+pub fn ModelInfo::accepts(Self, Modality) -> Bool
+pub fn ModelInfo::allows_context(Self, ReasoningContext) -> Bool
+pub fn ModelInfo::clamp_effort(Self, ThinkingLevel) -> String?
+pub fn ModelInfo::permissive(String) -> Self
+
+pub(all) struct ProviderSpec {
+  id : String
+  name : String
+  api : String
+  endpoint : String
+  auth : AuthStyle
+  key_env : String
+  model_env : String
+  default_model : String
+  models : Array[ModelInfo]
+  headers : Map[String, String]
+  telemetry_name : String
+  server_address : String
+} derive(@debug.Debug)
+
+pub(all) enum ReasoningContext {
+  AutoContext
+  CurrentTurn
+  AllTurns
+} derive(Eq, ToJson, @debug.Debug)
+pub fn ReasoningContext::parse(String) -> Self?
+
+pub(all) struct Registry {
+  apis : Map[String, ApiSpec]
+  providers : Array[ProviderSpec]
+}
+pub fn Registry::api(Self, String) -> ApiSpec?
+pub fn Registry::dialect_of(Self, String) -> &Dialect?
+pub fn Registry::endpoint(Self, provider~ : String, model~ : String, key~ : String) -> Result[(String, Map[String, String]), String]
+pub fn Registry::labels(Self) -> Array[String]
+pub fn Registry::model_info(Self, provider~ : String, model~ : String) -> ModelInfo?
+pub fn Registry::of(Array[ApiSpec], Array[ProviderSpec]) -> Self
+pub fn Registry::provider(Self, String) -> ProviderSpec?
+pub fn Registry::provider_for_api(Self, String) -> ProviderSpec?
+pub fn Registry::with_api(Self, ApiSpec) -> Self
+pub fn Registry::with_provider(Self, ProviderSpec) -> Self
+
+pub(all) struct RelayTransport {
+  post : (String, String, String, (String) -> Unit, (String) -> Unit) -> Unit
+  stop : (String) -> Unit
+}
+pub fn RelayTransport::make(post~ : (String, String, String, (String) -> Unit, (String) -> Unit) -> Unit, stop? : (String) -> Unit) -> Self
+pub impl LlmTransport for RelayTransport
+
+pub(all) enum StopReason {
+  EndTurn
+  MaxTokens
+  ToolUse
+  Errored
+  Aborted
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum StreamEvent {
+  Start(model~ : String)
+  TextStart(content_index~ : Int)
+  TextDelta(content_index~ : Int, delta~ : String)
+  TextEnd(content_index~ : Int)
+  ThinkingStart(content_index~ : Int)
+  ThinkingDelta(content_index~ : Int, delta~ : String)
+  ThinkingEnd(content_index~ : Int)
+  ToolCallStart(content_index~ : Int, id~ : String, name~ : String)
+  ToolCallDelta(content_index~ : Int, delta~ : String)
+  ToolCallEnd(content_index~ : Int)
+  Done(stop~ : StopReason, usage~ : Usage?)
+  Error(message~ : String)
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct StreamState {
+  chunks : Array[String]
+} derive(@debug.Debug)
+pub fn StreamState::new() -> Self
+pub fn StreamState::push(Self, String) -> Self
+pub fn StreamState::text(Self) -> String
+
+pub(all) enum ThinkingLevel {
+  Off
+  Minimal
+  Low
+  Medium
+  High
+  XHigh
+  Max
+} derive(Compare, Eq, ToJson, @debug.Debug)
+pub fn ThinkingLevel::parse(String) -> Self?
+
+pub(all) struct ToolDecl {
+  name : String
+  description : String
+  input_schema : Json
+} derive(ToJson, @debug.Debug)
+
+pub(all) struct Usage {
+  input : Int
+  output : Int
+  cache_read : Int
+  cache_write : Int
+} derive(Eq, ToJson, @debug.Debug)
+pub fn Usage::from_json(Json) -> Self?
+pub fn Usage::make(input~ : Int, output~ : Int, cache_read? : Int, cache_write? : Int) -> Self
+
+pub(all) enum UserBlock {
+  UserText(String)
+  UserImage(media_type~ : String, data~ : Bytes)
+} derive(ToJson, @debug.Debug)
+
+// Type aliases
+
+// Traits
+pub(open) trait Dialect {
+  fn id(Self) -> String
+  fn model(Self) -> String = _
+  fn lower_context(Self, LlmContext) -> Json
+  fn lift_message(Self, Json) -> ContextMessage raise DialectError
+  fn stream_init(Self) -> StreamState = _
+  fn stream_feed(Self, StreamState, chunk~ : String) -> (StreamState, Array[StreamEvent]) raise DialectError = _
+  fn stream_finish(Self, StreamState) -> ContextMessage raise DialectError = _
+}
+
+pub(open) trait LlmTransport {
+  fn send(Self, handle~ : String, target~ : String, body~ : Json, headers~ : Map[String, String], on_chunk~ : (String) -> Unit, on_done~ : () -> Unit, on_error~ : (String) -> Unit) -> Unit
+  fn abort(Self, handle~ : String) -> Unit = _
+}

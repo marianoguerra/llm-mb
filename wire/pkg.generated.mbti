@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "marianoguerra/llm/wire"
+
+import {
+  "marianoguerra/llm",
+}
+
+// Values
+pub fn configured(@llm.Registry) -> Array[(@llm.ProviderSpec, String)]
+
+pub fn endpoint_for(@llm.Registry, provider~ : String, model~ : String) -> Result[(String, Map[String, String]), String]
+
+pub fn from_env(@llm.Registry, priority~ : Array[String], provider_env~ : String, model_env~ : String) -> (@llm.ProviderSpec, String, String)?
+
+pub fn key_of(@llm.ProviderSpec) -> String?
+
+pub fn model_of(@llm.ProviderSpec) -> String
+
+// Errors
+
+// Types and methods
+pub(all) struct HttpTransport {
+  url : String
+  headers : Map[String, String]
+  spawn : (async () -> Unit) -> Unit
+}
+pub impl @llm.LlmTransport for HttpTransport
+
+// Type aliases
+
+// Traits

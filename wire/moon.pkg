@@ -1,0 +1,15 @@
+// The credentialed half: the only package under `llm/` that reads an
+// environment and opens a socket, and so the only one pinned to native.
+//
+// It is separate for the reason the whole tree is split — a page has neither
+// an environment nor a credential, and still has to lower, lift and choose a
+// dialect. Everything above this line compiles to
+// wasm-gc; this does not, and nothing that has to run in a browser may import
+// it.
+supported_targets = "native"
+
+import {
+  "marianoguerra/llm",
+  "moonbitlang/async/http",
+  "moonbitlang/x/sys",
+}
