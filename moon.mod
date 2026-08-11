@@ -1,10 +1,10 @@
 name = "marianoguerra/llm"
 
-version = "0.1.0"
+version = "0.1.1"
 
 readme = "README.md"
 
-repository = "https://github.com/marianoguerra/llm-moonbit"
+repository = "https://github.com/marianoguerra/llm-mb"
 
 license = "Apache-2.0"
 
