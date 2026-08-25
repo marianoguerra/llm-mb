@@ -30,9 +30,17 @@ pub impl @llm.LlmTransport for HttpTransport with fn send(
   // for the call, and neither is this one's business beyond saying so.
   ignore(target)
   ignore(handle)
-  let all = self.headers.copy()
+  // The merge lands in the wire's OWN map rather than being converted after
+  // it: `@http` keys headers case-insensitively and `LlmTransport` cannot,
+  // since a page implements the same trait and has no HTTP client to name a
+  // type from. One walk, and the case rule that decides which of two spellings
+  // wins is the socket's rather than a second one kept beside it.
+  let all : Map[@http.CaseInsensitiveString, String] = Map([])
+  for name, value in self.headers {
+    all[@http.CaseInsensitiveString(name)] = value
+  }
   for name, value in headers {
-    all[name] = value
+    all[@http.CaseInsensitiveString(name)] = value
   }
   (self.spawn)(() => {
     let (resp, data) = @http.post(self.url, body, headers=all) catch {

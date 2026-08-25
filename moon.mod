@@ -21,6 +21,6 @@ description = "A dialect-agnostic LLM IR, one wire mapping per provider protocol
 preferred_target = "wasm-gc"
 
 import {
-  "moonbitlang/async@0.20.3",
+  "moonbitlang/async@0.21.0",
   "moonbitlang/x@0.4.46",
 }
