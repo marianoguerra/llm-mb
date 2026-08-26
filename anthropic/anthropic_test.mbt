@@ -41,13 +41,19 @@ test "lower_context produces an anthropic messages body" {
   guard! body
     is {
       "model": String(model),
-      "system": String(system),
+      "system": Array([system_block]),
       "messages": Array(messages),
       "tools": Array(tools),
       ..
     }
   inspect(model, content="test-model")
-  inspect(system, content="sys prompt")
+  // A block and not a string, because the default retention puts a breakpoint
+  // on the system prompt and a marker has to sit on a block.
+  json_inspect(system_block, content={
+    "type": "text",
+    "text": "sys prompt",
+    "cache_control": { "type": "ephemeral" },
+  })
   assert_eq(tools.length(), 2)
   // user, assistant, then the two consecutive tool results merged into ONE
   // user message
@@ -147,7 +153,11 @@ test "an attached image lowers to an anthropic image block" {
           "data": "iVBORw==",
         },
       },
-      { "type": "text", "text": "what colour?" },
+      {
+        "type": "text",
+        "text": "what colour?",
+        "cache_control": { "type": "ephemeral" },
+      },
     ],
   })
 }
@@ -170,4 +180,103 @@ fn tool_decl(name : String) -> @llm.ToolDecl {
       "required": ["verb", "uri"],
     },
   }
+}
+
+///|
+/// A conversation, lowered twice, is the same body with more on the end of it
+/// — so the breakpoints are what decide whether the front of it is paid for
+/// again. Four is the limit this API sets and four is what a full request
+/// carries: the tools, the system prompt, and the last two messages.
+test "a request marks the tools, the system prompt and the last two messages" {
+  let d = @anthropic.AnthropicDialect::make(model="test-model", max_tokens=100)
+  let ctx : @llm.LlmContext = {
+    system: Some("sys prompt"),
+    messages: [
+      UserMsg(content=[UserText("read a.txt")]),
+      AssistantMsg(
+        content=[
+          @llm.AssistantBlock::ToolCall(
+            id="tc1",
+            name="request",
+            arguments={ "uri": "file:///a.txt" },
+            signature=None,
+          ),
+        ],
+        stop=@llm.StopReason::ToolUse,
+        model="test-model",
+        response_id=None,
+        usage=None,
+        error=None,
+      ),
+      ToolResultMsg(
+        tool_call_id="tc1",
+        tool_name="request",
+        content=[UserText("contents")],
+        is_error=false,
+      ),
+    ],
+    tools: [tool_decl("describe"), tool_decl("request")],
+    params: @llm.LlmParams::default(),
+  }
+  guard! @llm.Dialect::lower_context(d, ctx)
+    is { "messages": Array(messages), "tools": Array(tools), .. }
+  // The last tool, not the first: a breakpoint keeps what is in FRONT of it.
+  assert_true(!marked_here(tools[0]))
+  assert_true(marked_here(tools[1]))
+  // The last two messages, and not the one before them.
+  assert_true(!marked_at_end(messages[0]))
+  assert_true(marked_at_end(messages[1]))
+  assert_true(marked_at_end(messages[2]))
+}
+
+///|
+/// The long tier is the same four breakpoints with an hour on them, and it is
+/// spelled only when asked for: `ttl` absent is the five-minute default, and
+/// writing it out would be a different request for the same intent.
+test "the long tier asks for an hour" {
+  let d = @anthropic.AnthropicDialect::make(model="test-model")
+  guard! @llm.Dialect::lower_context(d, one_turn(LongCache))
+    is { "system": Array([block]), .. }
+  json_inspect(block, content={
+    "type": "text",
+    "text": "sys prompt",
+    "cache_control": { "type": "ephemeral", "ttl": "1h" },
+  })
+}
+
+///|
+/// And a caller who asked for no caching gets the request this dialect sent
+/// before any of it existed: a plain system string, and not one marker
+/// anywhere.
+test "no caching marks nothing at all" {
+  let d = @anthropic.AnthropicDialect::make(model="test-model")
+  guard! @llm.Dialect::lower_context(d, one_turn(NoCache))
+    is { "system": String(system), "messages": Array(messages), .. }
+  inspect(system, content="sys prompt")
+  assert_true(!marked_at_end(messages[0]))
+}
+
+///|
+/// One user turn, at the retention under test.
+fn one_turn(retention : @llm.CacheRetention) -> @llm.LlmContext {
+  {
+    system: Some("sys prompt"),
+    messages: [UserMsg(content=[UserText("hello")])],
+    tools: [],
+    params: { ..@llm.LlmParams::default(), cache_retention: retention },
+  }
+}
+
+///|
+/// Whether this block carries a breakpoint.
+fn marked_here(block : Json) -> Bool {
+  block is { "cache_control": Object(_), .. }
+}
+
+///|
+/// Whether the last block of this message carries one.
+fn marked_at_end(message : Json) -> Bool {
+  guard message is { "content": Array(blocks), .. } else { return false }
+  guard blocks.length() > 0 else { return false }
+  marked_here(blocks[blocks.length() - 1])
 }

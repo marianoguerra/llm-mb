@@ -186,3 +186,55 @@ fn tool_decl(name : String) -> @llm.ToolDecl {
     },
   }
 }
+
+///|
+/// What a cached prefix costs is a tenth of what a fresh one does, so the two
+/// halves of `prompt_tokens` are not interchangeable and a lift that reported
+/// the sum as fresh input priced every hit as a miss. OpenRouter speaks this
+/// protocol and passes the same detail object through, so this is what it
+/// reports too.
+test "lift_message: the cached half of the prompt is counted apart" {
+  let d = @openai.OpenAiDialect::make(model="test-model")
+  let reply : Json = {
+    "choices": [
+      {
+        "message": { "role": "assistant", "content": "hi" },
+        "finish_reason": "stop",
+      },
+    ],
+    "model": "test-model",
+    "usage": {
+      "prompt_tokens": 10000,
+      "completion_tokens": 50,
+      "total_tokens": 10050,
+      "prompt_tokens_details": { "cached_tokens": 9000 },
+    },
+  }
+  guard! @llm.Dialect::lift_message(d, reply) is AssistantMsg(usage~, ..)
+  guard! usage is Some(u)
+  assert_eq(u.cache_read, 9000)
+  assert_eq(u.input, 1000)
+  assert_eq(u.output, 50)
+}
+
+///|
+/// A reply from a vendor that reports no details cached nothing, and says so
+/// by leaving the object out. The whole prompt is fresh input, which is what
+/// this protocol looked like before caching existed.
+test "lift_message: no details means nothing was cached" {
+  let d = @openai.OpenAiDialect::make(model="test-model")
+  let reply : Json = {
+    "choices": [
+      {
+        "message": { "role": "assistant", "content": "hi" },
+        "finish_reason": "stop",
+      },
+    ],
+    "model": "test-model",
+    "usage": { "prompt_tokens": 300, "completion_tokens": 12 },
+  }
+  guard! @llm.Dialect::lift_message(d, reply) is AssistantMsg(usage~, ..)
+  guard! usage is Some(u)
+  assert_eq(u.cache_read, 0)
+  assert_eq(u.input, 300)
+}

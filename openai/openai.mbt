@@ -170,21 +170,37 @@ pub impl @llm.Dialect for OpenAiDialect with fn lift_message(
     _ => EndTurn
   }
   let (model, response_id) = @llm.reply_identity(reply, fallback=self.model)
+  // `prompt_tokens` counts the whole prefix, the part that came back from the
+  // cache included, so what was cached is subtracted out rather than billed
+  // twice as fresh input. The detail object is where every vendor on this
+  // protocol reports it — OpenAI names it `prompt_tokens_details`, and
+  // OpenRouter passes the same shape through from whichever provider served
+  // the call. A reply without one cached nothing, which is the zero.
   let usage : @llm.Usage? = match reply {
     {
       "usage": {
         "prompt_tokens": Number(input_tokens, ..),
         "completion_tokens": Number(output_tokens, ..),
         ..
-      },
+      } as usage,
       ..
-    } =>
+    } => {
+      let cache_read = match usage {
+        { "prompt_tokens_details": { "cached_tokens": Number(n, ..), .. }, .. } =>
+          n.to_int()
+        _ => 0
+      }
+      // No cache-write line: this protocol has nowhere to ask for a write and
+      // no vendor on it reports one. `cache_write` stays zero, which is the
+      // true count and not a gap.
       Some(
         @llm.Usage::make(
-          input=input_tokens.to_int(),
+          input=input_tokens.to_int() - cache_read,
           output=output_tokens.to_int(),
+          cache_read~,
         ),
       )
+    }
     _ => None
   }
   AssistantMsg(content=blocks, stop~, model~, response_id~, usage~, error=None)

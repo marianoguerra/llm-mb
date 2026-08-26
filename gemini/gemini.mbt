@@ -182,21 +182,32 @@ pub impl @llm.Dialect for GeminiDialect with fn lift_message(
     { "finishReason": String(raw_finish), .. } => stop_reason_of(raw_finish)
     _ => EndTurn
   }
+  // `promptTokenCount` counts the whole prefix, the cached part included, so
+  // `cachedContentTokenCount` is subtracted out rather than billed twice as
+  // fresh input. Google caches implicitly from 2.5 onward and says so only
+  // here, so a reply that never asked for caching still reports it — and a
+  // reader that ignored the field would price a hit as a miss.
   let usage : @llm.Usage? = match reply {
     {
       "usageMetadata": {
         "promptTokenCount": Number(input_tokens, ..),
         "candidatesTokenCount": Number(output_tokens, ..),
         ..
-      },
+      } as counts,
       ..
-    } =>
+    } => {
+      let cache_read = match counts {
+        { "cachedContentTokenCount": Number(n, ..), .. } => n.to_int()
+        _ => 0
+      }
       Some(
         @llm.Usage::make(
-          input=input_tokens.to_int(),
+          input=input_tokens.to_int() - cache_read,
           output=output_tokens.to_int(),
+          cache_read~,
         ),
       )
+    }
     _ => None
   }
   let response_id = match reply {

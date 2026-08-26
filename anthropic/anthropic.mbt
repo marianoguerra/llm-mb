@@ -57,6 +57,72 @@ fn assistant_blocks_json(blocks : Array[@llm.AssistantBlock]) -> Array[Json] {
 }
 
 ///|
+/// Where a breakpoint may sit.
+///
+/// Anthropic takes one on a content block, and a request is made of four
+/// kinds. A thought is not among them: it is replayed for its signature, and
+/// what a cache is asked to keep is the prefix a person built, not the
+/// model's own working.
+fn cacheable(block : Json) -> Bool {
+  match block {
+    { "type": String("text"), .. }
+    | { "type": String("image"), .. }
+    | { "type": String("tool_use"), .. }
+    | { "type": String("tool_result"), .. } => true
+    _ => false
+  }
+}
+
+///|
+/// The marker that says "keep everything up to here", or nothing when the
+/// caller asked for no caching.
+///
+/// Anthropic's caching is opt-in and per breakpoint — nothing is kept unless
+/// the request says where the stable part ends, which is the difference
+/// between this API and OpenAI's. `ttl` is only spelled for the long tier,
+/// because the five-minute one is what the field defaults to.
+fn cache_marker(retention : @llm.CacheRetention) -> Json? {
+  match retention {
+    NoCache => None
+    ShortCache => Some({ "type": "ephemeral" })
+    LongCache => Some({ "type": "ephemeral", "ttl": "1h" })
+  }
+}
+
+///|
+/// One block with a breakpoint on it — a copy, so nothing the caller handed
+/// over is marked behind its back.
+fn marked(block : Json, marker : Json) -> Json {
+  guard block is Object(fields) else { return block }
+  let out : Map[String, Json] = Map([])
+  for key, value in fields {
+    out.set(key, value)
+  }
+  out.set("cache_control", marker)
+  Json::object(out)
+}
+
+///|
+/// Put a breakpoint at the end of one message, and say whether it landed.
+///
+/// The LAST block that can take one, walking back past the thoughts: a
+/// breakpoint keeps everything in front of it, so the further into the
+/// message it sits, the more of the conversation the next turn reads back.
+fn mark_message(message : Json, marker : Json) -> Bool {
+  guard message is Object(fields) else { return false }
+  guard fields.get("content") is Some(Array(blocks)) else { return false }
+  let mut i = blocks.length() - 1
+  while i >= 0 {
+    if cacheable(blocks[i]) {
+      blocks[i] = marked(blocks[i], marker)
+      return true
+    }
+    i = i - 1
+  }
+  false
+}
+
+///|
 pub impl @llm.Dialect for AnthropicDialect with fn id(_self : AnthropicDialect) -> String {
   "anthropic-messages"
 }
@@ -112,23 +178,64 @@ pub impl @llm.Dialect for AnthropicDialect with fn lower_context(
     }
   }
   flush_results()
+  let marker = cache_marker(ctx.params.cache_retention)
+  let tools = ctx.tools.map(tool => {
+    (
+      {
+        "name": Json::string(tool.name),
+        "description": Json::string(tool.description),
+        "input_schema": tool.input_schema,
+      } : Json)
+  })
+  // The breakpoints, from the front of the prompt to the back. Four is the
+  // limit and four is what this places, because the four are the boundaries
+  // this API actually has: the tool declarations, the system prompt, and the
+  // last two messages.
+  //
+  // The two at the back are what makes a growing conversation cache at all.
+  // A breakpoint writes an entry for the prefix in front of it, so the one on
+  // the final message is what the NEXT turn reads back, and the one on the
+  // message before it is the entry the current turn is reading — kept marked
+  // so it survives while the newer write is still landing.
+  //
+  // Nothing marks a thought or an unfinished turn, and nothing marks anything
+  // at all when the caller asked for no caching: an unmarked request is the
+  // one this dialect used to send, and it was billed at full price for a
+  // prefix the provider already had.
+  if marker is Some(marker) {
+    if tools.length() > 0 {
+      tools[tools.length() - 1] = marked(tools[tools.length() - 1], marker)
+    }
+    let mut left = 2
+    let mut i = messages.length() - 1
+    while i >= 0 && left > 0 {
+      if mark_message(messages[i], marker) {
+        left = left - 1
+      }
+      i = i - 1
+    }
+  }
   let body : Map[String, Json] = {
     "model": Json::string(self.model),
     "max_tokens": Json::number(self.max_tokens.to_double()),
     "messages": Json::array(messages),
-    "tools": Json::array(
-      ctx.tools.map(tool => {
-        (
-          {
-            "name": Json::string(tool.name),
-            "description": Json::string(tool.description),
-            "input_schema": tool.input_schema,
-          } : Json)
-      }),
-    ),
+    "tools": Json::array(tools),
   }
   if ctx.system is Some(system) {
-    body["system"] = Json::string(system)
+    // A string until there is a breakpoint to hang on it: `system` takes
+    // either spelling, and the array form exists here only because a marker
+    // has to sit on a block.
+    body["system"] = match marker {
+      Some(marker) =>
+        Json::array([
+          {
+            "type": "text",
+            "text": Json::string(system),
+            "cache_control": marker,
+          },
+        ])
+      None => Json::string(system)
+    }
   }
   Json::object(body)
 }

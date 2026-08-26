@@ -151,3 +151,30 @@ fn tool_decl(name : String) -> @llm.ToolDecl {
     },
   }
 }
+
+///|
+/// Google caches implicitly and reports it in one field, so a lift that
+/// ignored `cachedContentTokenCount` billed a hit as a miss — and the counts
+/// overlap, `promptTokenCount` being the whole prefix and not the fresh part
+/// of it.
+test "lift_message: cached content is counted apart from fresh input" {
+  let d = @gemini.GeminiDialect::make(model="gemini-3-pro")
+  let reply : Json = {
+    "candidates": [
+      {
+        "content": { "role": "model", "parts": [{ "text": "hi" }] },
+        "finishReason": "STOP",
+      },
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 5000,
+      "candidatesTokenCount": 20,
+      "cachedContentTokenCount": 4096,
+    },
+  }
+  guard! @llm.Dialect::lift_message(d, reply) is AssistantMsg(usage~, ..)
+  guard! usage is Some(u)
+  assert_eq(u.cache_read, 4096)
+  assert_eq(u.input, 904)
+  assert_eq(u.output, 20)
+}
