@@ -137,11 +137,20 @@ pub impl @llm.Dialect for OpenAiDialect with fn lift_message(
   if @llm.api_error(reply, model=self.model) is Some(msg) {
     return msg
   }
-  guard reply is { "choices": Array([choice, ..]), .. } &&
-    choice is { "message": message, .. } else {
-    raise @llm.DialectError::MalformedReply(
-      "expected a chat completion with choices, got: \{reply.stringify()}",
-    )
+  // Two shapes answer on this protocol. OpenAI's own is `choices[]`, each
+  // wrapping a `message` and carrying the `finish_reason` beside it.
+  // OpenRouter answers some calls with a bare `messages[]` instead — the turn
+  // without the wrapper, and so without a finish reason. Both are read,
+  // because a reply this could not lift is a turn lost, and the one thing the
+  // wrapper carries that the message does not is recoverable from the blocks.
+  let (message, choice) = match reply {
+    { "choices": Array([choice, ..]), .. } if choice
+      is { "message": message, .. } => (message, choice)
+    { "messages": Array([.., last]), .. } => (last, last)
+    _ =>
+      raise @llm.DialectError::MalformedReply(
+        "expected a chat completion with choices or messages, got: \{reply.stringify()}",
+      )
   }
   let blocks : Array[@llm.AssistantBlock] = []
   if message is { "content": String(text), .. } && text != "" {
@@ -165,9 +174,17 @@ pub impl @llm.Dialect for OpenAiDialect with fn lift_message(
       blocks.push(ToolCall(id~, name~, arguments~, signature=None))
     }
   }
+  // A `finish_reason` when the reply has one, and the blocks themselves when
+  // it does not: a turn that asked for a tool is a turn that stopped for one,
+  // whatever the envelope did or did not say.
   let stop = match choice {
     { "finish_reason": String(raw_finish), .. } => stop_reason_of(raw_finish)
-    _ => EndTurn
+    _ =>
+      if blocks.iter().any(block => block is ToolCall(..)) {
+        ToolUse
+      } else {
+        EndTurn
+      }
   }
   let (model, response_id) = @llm.reply_identity(reply, fallback=self.model)
   // `prompt_tokens` counts the whole prefix, the part that came back from the

@@ -238,3 +238,49 @@ test "lift_message: no details means nothing was cached" {
   assert_eq(u.cache_read, 0)
   assert_eq(u.input, 300)
 }
+
+///|
+/// The other shape that answers on this protocol.
+///
+/// OpenRouter returns the turn as a bare `messages[]` — no `choices` wrapper,
+/// and so no `finish_reason` to read a stop reason off. A lift that insisted
+/// on the wrapper refused the whole reply, which is a turn lost rather than a
+/// count mis-read: the tool call is right there in the message.
+test "lift_message: a reply with messages and no choices still lifts" {
+  let d = @openai.OpenAiDialect::make(model="test-model")
+  let reply : Json = {
+    "object": "chat.completion",
+    "model": "openai/gpt-5.4-mini",
+    "messages": [
+      {
+        "role": "assistant",
+        "content": Json::null(),
+        "tool_calls": [
+          {
+            "type": "function",
+            "id": "call_1",
+            "function": {
+              "name": "read_file",
+              "arguments": "{\"path\":\"a.txt\"}",
+            },
+          },
+        ],
+      },
+    ],
+    "usage": {
+      "prompt_tokens": 102,
+      "completion_tokens": 28,
+      "prompt_tokens_details": { "cached_tokens": 0 },
+    },
+  }
+  guard! @llm.Dialect::lift_message(d, reply)
+    is AssistantMsg(content~, stop~, usage~, ..)
+  // Stopped for a tool because it asked for one, which is what the missing
+  // `finish_reason` would have said.
+  assert_true(stop == @llm.StopReason::ToolUse)
+  assert_eq(content.length(), 1)
+  guard! content[0] is ToolCall(name~, ..)
+  inspect(name, content="read_file")
+  guard! usage is Some(u)
+  assert_eq(u.input, 102)
+}

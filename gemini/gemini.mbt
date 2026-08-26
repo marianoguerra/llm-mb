@@ -200,10 +200,19 @@ pub impl @llm.Dialect for GeminiDialect with fn lift_message(
         { "cachedContentTokenCount": Number(n, ..), .. } => n.to_int()
         _ => 0
       }
+      // Thoughts are output and are billed as output, and Google counts them
+      // in neither `candidatesTokenCount` nor the prompt — the three add up to
+      // `totalTokenCount`, which is how you can tell. A turn that reasoned
+      // hard and answered briefly is mostly this number, so leaving it out
+      // reports a fraction of what the turn cost.
+      let thoughts = match counts {
+        { "thoughtsTokenCount": Number(n, ..), .. } => n.to_int()
+        _ => 0
+      }
       Some(
         @llm.Usage::make(
           input=input_tokens.to_int() - cache_read,
-          output=output_tokens.to_int(),
+          output=output_tokens.to_int() + thoughts,
           cache_read~,
         ),
       )
