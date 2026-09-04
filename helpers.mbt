@@ -11,12 +11,27 @@ pub impl Show for DialectError with fn output(self, logger) {
 
 ///|
 /// Provider API errors are data on the message, never exceptions (pi
-/// convention). Matches the `{"error": {"message": ...}}` shape all four
-/// providers answer with (Anthropic wraps it in `{"type": "error", ...}`,
-/// which this pattern also matches).
+/// convention).
+///
+/// Two shapes, because "OpenAI-compatible" is not compatible about this one.
+/// The wrapped `{"error": {"message": ...}}` is what the vendors with their
+/// own protocol answer with (Anthropic wraps it again in `{"type": "error",
+/// ...}`, which the same pattern matches). Cerebras answers with the error
+/// object BARE — `{"message": ..., "type": "payment_required_error",
+/// "code": ...}`, no envelope — and reading that as a malformed reply told
+/// an operator their mapping was broken when their billing was.
+///
+/// Requiring a top-level STRING `message` beside an error marker is what
+/// keeps the bare arm from shadowing a good reply: a success is keyed by
+/// `choices`, `content`, `candidates` or `output` on the protocols here, and
+/// none of them carries one. `{"message": {...}}` as an object — which some
+/// compatible servers do return — does not match either.
 pub fn api_error(reply : Json, model~ : String) -> ContextMessage? {
-  guard reply is { "error": { "message": String(message), .. }, .. } else {
-    return None
+  let message = match reply {
+    { "error": { "message": String(message), .. }, .. } => message
+    { "message": String(message), "code": _, .. } => message
+    { "message": String(message), "type": String(_), .. } => message
+    _ => return None
   }
   Some(
     AssistantMsg(

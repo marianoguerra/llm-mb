@@ -1,7 +1,7 @@
 # marianoguerra/llm
 
 A dialect-agnostic LLM IR, one wire mapping per provider protocol, a registry
-that makes a fifth provider a struct literal, and a transport a browser can
+that makes a sixth provider a struct literal, and a transport a browser can
 implement.
 
 Modelled on [pi.dev](https://pi.dev)'s `packages/ai`, which draws the same
@@ -31,14 +31,17 @@ Switching model mid-session is passing the same `LlmContext` to a different
 | `llm/openai` | `openai-responses` and `openai-completions`, plus a probed capability table |
 | `llm/gemini` | `google-generative-ai` — the one whose endpoint carries the model |
 | `llm/openrouter` | `openrouter`, which borrows the completions mapping |
-| `llm/catalog` | The four providers as data. Credential-free |
-| `llm/wire` | Reading a key out of an environment, resolving an endpoint with it, and an HTTP transport. **The only native package here** |
+| `llm/catalog` | The five providers as data — Cerebras among them, riding `openai-completions` with no dialect of its own. Credential-free |
+| `llm/wire` | Reading a key out of an environment, resolving an endpoint with it, and an HTTP transport. **The only native library here** |
+| `cmd/smoke` | A live check against every provider whose key is set. Native, and never run by `just ci` |
 
-Everything except `llm/wire` is target-neutral, so a browser page can lower a
+Every library here except `llm/wire` is target-neutral, so a browser page can lower a
 context, choose a dialect and lift a reply with no server involved — the page
 does both stages and a relay only forwards bytes, never learning which
 provider is on the other end. `preferred_target` is `wasm-gc` so that stays
-true by default; `just check` covers native too.
+true by default; `just check` covers native too, and `just targets-check`
+fails if any *importable* package but `wire` picks up a target restriction.
+`cmd/smoke` is native and exempt, because nothing can import an executable.
 
 ## What is NOT here
 
@@ -68,6 +71,10 @@ let registry = @catalog.default_registry().with_provider({
 })
 ```
 
+`llm/catalog`'s `cerebras_provider()` is exactly this shape, shipped: Cerebras
+speaks `openai-completions`, so it is a row with no dialect, no `ApiSpec` and
+no code path — the same way pi.dev models it.
+
 `{model}` in `endpoint` is substituted where a provider puts the model in the
 URL instead of the body. `auth` is `BearerHeader | KeyHeader(name) |
 KeyQuery(name) | NoAuth` — the credential itself is never in a `ProviderSpec`,
@@ -89,6 +96,38 @@ pub fn api_spec() -> @llm.ApiSpec {
 The trait is six methods, three of which have defaults that buffer the body and
 lift it whole — so a dialect is `id`, `lower_context` and `lift_message` until
 it wants real streaming.
+
+## Checking it against the real thing
+
+`moon test` is offline and free — every dialect test lowers a context and lifts
+a canned reply. To see whether the mapping still matches what the providers
+actually do:
+
+```
+just smoke
+```
+
+It sends two real requests to **every provider whose key is in the
+environment**, and skips the rest rather than failing them. `.env.example`
+lists every variable the module reads, with what each one turns on:
+
+```
+cp .env.example .env   # then fill in the keys you have
+set -a; . ./.env; set +a
+``` Each provider gets
+its cheapest model, `effort: Off` clamped onto whatever the model's row says is
+least, and a reply capped at a few dozen tokens — a full five-provider run is
+fractions of a cent.
+
+The two cases are the two halves of a mapping: one plain turn (system prompt,
+user turn, text and usage back) and one with a tool declared (tool lowering,
+and a `ToolCall` lifted with its arguments parsed back out of the JSON string
+they travel as). Both go through `stream_init`/`stream_feed`/`stream_finish`,
+which is the path a real caller drives.
+
+It lives in `cmd/smoke` as an executable rather than a `_test.mbt`, because
+`moon test` runs everything it finds and this costs money and needs
+credentials. `just ci` does not run it.
 
 ## Two things that look odd and are not
 

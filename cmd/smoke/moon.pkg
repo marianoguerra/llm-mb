@@ -1,0 +1,19 @@
+// The live smoke test. Native, because it reads an environment and opens a
+// socket — the same two reasons `wire` is, and it imports `wire` to do both.
+//
+// It is an `executable` and not a `_test.mbt` on purpose: `moon test` runs
+// everything it finds, and what this does costs money and needs credentials.
+// Naming it is the opt-in.
+//
+//     moon run cmd/smoke --target native
+supported_targets = "+native"
+
+import {
+  "marianoguerra/llm",
+  "marianoguerra/llm/catalog",
+  "marianoguerra/llm/wire",
+  "moonbitlang/async",
+  "moonbitlang/core/json",
+}
+
+pkgtype(kind: "executable")

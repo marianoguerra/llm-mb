@@ -10,11 +10,19 @@ pub(all) struct OpenRouterDialect {
 } derive(Debug)
 
 ///|
-pub fn OpenRouterDialect::make(model? : String) -> OpenRouterDialect {
+pub fn OpenRouterDialect::make(
+  model? : String,
+  info? : @llm.ModelInfo,
+) -> OpenRouterDialect {
+  let model = model.unwrap_or("openai/gpt-5.4-mini")
+  // The row travels too, so a caller holding a registry with real OpenRouter
+  // rows gets those clamped against rather than OpenAI's table, which knows
+  // none of these ids.
   {
-    inner: @openai.OpenAiDialect::make(
-      model=model.unwrap_or("openai/gpt-5.4-mini"),
-    ),
+    inner: match info {
+      Some(info) => @openai.OpenAiDialect::make(model~, info~)
+      None => @openai.OpenAiDialect::make(model~)
+    },
   }
 }
 
@@ -59,7 +67,7 @@ pub impl @llm.Dialect for OpenRouterDialect with fn lift_message(
 pub fn api_spec() -> @llm.ApiSpec {
   {
     id: "openrouter",
-    make: info => OpenRouterDialect::make(model=info.id),
+    make: info => OpenRouterDialect::make(model=info.id, info~),
     caps: id => @llm.ModelInfo::permissive(id),
   }
 }

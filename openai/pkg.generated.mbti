@@ -20,8 +20,9 @@ pub fn responses_api_spec() -> @llm.ApiSpec
 // Types and methods
 pub(all) struct OpenAiDialect {
   model : String
+  info : @llm.ModelInfo
 } derive(@debug.Debug)
-pub fn OpenAiDialect::make(model? : String) -> Self
+pub fn OpenAiDialect::make(model? : String, info? : @llm.ModelInfo) -> Self
 pub impl @llm.Dialect for OpenAiDialect
 
 pub(all) struct OpenAiResponsesDialect {

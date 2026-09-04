@@ -168,10 +168,9 @@ test "an attached image promotes user content to the array form" {
 }
 
 ///|
-/// A tool to lower, and nothing more. What the hypermedia client's two tools
-/// actually say is the embedding application's business; a dialect test only
-/// needs one decl to watch travel into the provider's own spelling of a tool
-/// list.
+/// A tool to lower, and nothing more. What a caller's tools actually say is
+/// the embedding application's business; a dialect test only needs one decl
+/// to watch travel into the provider's own spelling of a tool list.
 fn tool_decl(name : String) -> @llm.ToolDecl {
   {
     name,
@@ -283,4 +282,128 @@ test "lift_message: a reply with messages and no choices still lifts" {
   inspect(name, content="read_file")
   guard! usage is Some(u)
   assert_eq(u.input, 102)
+}
+
+///|
+/// An empty turn, so a params test says only what it is about: the knobs.
+fn params_ctx(params : @llm.LlmParams) -> @llm.LlmContext {
+  { system: None, messages: [], tools: [], params, }
+}
+
+///|
+/// The row a Cerebras-shaped model has: reasoning it cannot turn off, and a
+/// ceiling well under what a caller might ask for.
+fn oss_row() -> @llm.ModelInfo {
+  {
+    id: "gpt-oss-120b",
+    api: None,
+    reasoning: true,
+    thinking_levels: [(Low, "low"), (Medium, "medium"), (High, "high")],
+    supports_pro_mode: false,
+    reasoning_contexts: [],
+    input: [TextIn],
+    context_window: 131_072,
+    max_output_tokens: Some(40_960),
+    cost: None,
+  }
+}
+
+///|
+/// The no-regression guarantee for every vendor on this shared mapping: a
+/// caller who asks for nothing gets the body this dialect has always sent.
+/// `LlmParams::default()` sets neither knob, so neither key appears.
+test "openai lower_context: default params add nothing to the body" {
+  let d = @openai.OpenAiDialect::make(model="gpt-5.4-mini")
+  let body = @llm.Dialect::lower_context(
+    d,
+    params_ctx(@llm.LlmParams::default()),
+  )
+  guard! body is { "model": _, .. }
+  assert_true(!(body is { "reasoning_effort": _, .. }))
+  assert_true(!(body is { "max_completion_tokens": _, .. }))
+}
+
+///|
+/// Why the rows were written. `Off` is a level `gpt-oss-120b` does not have,
+/// and `clamp_effort` goes UP before it goes down, so the request carries the
+/// least this model can do instead of a `none` it answers with a 400.
+test "openai lower_context: effort clamps up when the model cannot stop" {
+  let d = @openai.OpenAiDialect::make(model="gpt-oss-120b", info=oss_row())
+  let asked = { ..@llm.LlmParams::default(), effort: Some(Off), }
+  guard! @llm.Dialect::lower_context(d, params_ctx(asked))
+    is { "reasoning_effort": String(name), .. }
+  inspect(name, content="low")
+}
+
+///|
+/// A model whose row says it does not reason is not asked to, however loudly
+/// the caller sets the dial.
+test "openai lower_context: a model that does not reason is not asked to" {
+  let flat = { ..oss_row(), reasoning: false, }
+  let d = @openai.OpenAiDialect::make(model="gpt-oss-120b", info=flat)
+  let asked = { ..@llm.LlmParams::default(), effort: Some(High), }
+  let body = @llm.Dialect::lower_context(d, params_ctx(asked))
+  assert_true(!(body is { "reasoning_effort": _, .. }))
+}
+
+///|
+/// The cap is the model's, not the caller's, and it is `max_completion_tokens`
+/// — `max_tokens` is the deprecated spelling and sending both is an error.
+test "openai lower_context: the output cap is clamped to the model's own" {
+  let d = @openai.OpenAiDialect::make(model="gpt-oss-120b", info=oss_row())
+  // -1 rather than a `fail`, so the assertion below names the number that
+  // was wrong instead of the lookup that missed.
+  fn cap_for(want : Int) -> Double {
+    let asked = { ..@llm.LlmParams::default(), max_output_tokens: Some(want), }
+    guard @llm.Dialect::lower_context(d, params_ctx(asked))
+      is { "max_completion_tokens": Number(n, ..), .. } else {
+      return -1.0
+    }
+    n
+  }
+
+  // Under the ceiling, the caller's number.
+  assert_eq(cap_for(1024), 1024.0)
+  // Over it, the model's.
+  assert_eq(cap_for(999_999), 40_960.0)
+  // And a cap too small to be meant is raised rather than refused.
+  assert_eq(cap_for(1), 16.0)
+}
+
+///|
+/// The reply that made this test exist: Cerebras answers a billing refusal
+/// with the error object BARE, no `{"error": ...}` envelope, and the live
+/// smoke run read it as "malformed reply: expected a chat completion" — which
+/// pointed an operator at their mapping when the problem was their quota.
+///
+/// Verbatim from that run.
+test "openai lift: a bare error object is an error, not a malformed reply" {
+  let d = @openai.OpenAiDialect::make(model="gpt-oss-120b")
+  let refusal : Json = {
+    "message": "Payment required to access this resource. Visit your billing tab.",
+    "type": "payment_required_error",
+    "param": "quota",
+    "code": "payment_required",
+  }
+  guard! @llm.Dialect::lift_message(d, refusal)
+    is AssistantMsg(stop~, error~, content~, ..)
+  assert_true(stop == @llm.StopReason::Errored)
+  assert_eq(content.length(), 0)
+  guard! error is Some(why)
+  assert_true(why.contains("Payment required"))
+}
+
+///|
+/// And the arm that keeps the one above from eating good replies: a chat
+/// completion has no top-level string `message`, so it still lifts as text.
+test "openai lift: a real completion is not mistaken for a bare error" {
+  let d = @openai.OpenAiDialect::make(model="gpt-oss-120b")
+  let reply : Json = {
+    "choices": [{ "message": { "content": "pong" }, "finish_reason": "stop" }],
+  }
+  guard! @llm.Dialect::lift_message(d, reply)
+    is AssistantMsg(content~, error~, ..)
+  assert_true(error is None)
+  guard! content[0] is AssistantText(text~, ..)
+  inspect(text, content="pong")
 }

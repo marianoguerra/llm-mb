@@ -8,6 +8,8 @@ import {
 // Values
 pub fn anthropic_provider() -> @llm.ProviderSpec
 
+pub fn cerebras_provider() -> @llm.ProviderSpec
+
 pub fn default_registry() -> @llm.Registry
 
 pub fn gemini_provider() -> @llm.ProviderSpec

@@ -58,21 +58,30 @@ spec-check:
     [ "$fail" = 0 ] && echo "spec-check: ok"
     exit $fail
 
-# Fail if anything but `wire` has picked up a target restriction, or if `wire`
-# has lost one (CI).
+# Fail if any importable package but `wire` has picked up a target
+# restriction, or if `wire` has lost one (CI).
 #
 # The split is the module's headline property and it is one line per package
 # to break. A `supported_targets = "native"` added to `openai` because
 # something there wanted a socket would compile, pass, and quietly make this
 # unusable from a browser.
+#
+# Executables are exempt, and the exemption is the rule stated exactly rather
+# than widened: what the property protects is what a PAGE can import, and
+# nothing imports an executable. `cmd/smoke` is native because it reads an
+# environment and opens a socket; being unable to depend on it is precisely
+# why that is harmless.
 targets-check:
     #!/usr/bin/env bash
     set -euo pipefail
     fail=0
     for pkg in $(git ls-files '*moon.pkg' | sort); do
         dir=$(dirname "$pkg")
+        if grep -qE 'pkgtype\(kind: *"executable"\)' "$pkg"; then
+            continue
+        fi
         if grep -qE '^[[:space:]]*supported_targets' "$pkg"; then
-            [ "$dir" = "wire" ] || { echo "targets-check: $pkg restricts its target and is not wire"; fail=1; }
+            [ "$dir" = "wire" ] || { echo "targets-check: $pkg restricts its target, is not wire, and is importable"; fail=1; }
         else
             [ "$dir" != "wire" ] || { echo "targets-check: wire lost supported_targets = native"; fail=1; }
         fi
@@ -81,6 +90,15 @@ targets-check:
     exit $fail
 
 ci: fmt-check info-check spec-check targets-check check test
+
+# Send real requests to every provider whose key is in the environment.
+#
+# NOT part of `ci`, and not a `_test.mbt`, because it costs money and needs
+# credentials. It picks each provider's cheapest model and caps the reply at a
+# few dozen tokens, so a full run is fractions of a cent; providers with no key
+# set are skipped rather than failed.
+smoke:
+    moon run cmd/smoke --target native
 
 # What `moon publish` would ship, without shipping it.
 publish-dry: ci

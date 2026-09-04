@@ -133,10 +133,9 @@ test "gemini lift: api errors are data" {
 }
 
 ///|
-/// A tool to lower, and nothing more. What the hypermedia client's two tools
-/// actually say is the embedding application's business; a dialect test only
-/// needs one decl to watch travel into the provider's own spelling of a tool
-/// list.
+/// A tool to lower, and nothing more. What a caller's tools actually say is
+/// the embedding application's business; a dialect test only needs one decl
+/// to watch travel into the provider's own spelling of a tool list.
 fn tool_decl(name : String) -> @llm.ToolDecl {
   {
     name,

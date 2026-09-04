@@ -4,13 +4,26 @@
 // messages, and the system prompt is a leading message.
 
 ///|
+/// The model's row travels with the dialect rather than being looked up in
+/// `lower_context`, because this API is spoken by vendors whose models are
+/// not in OpenAI's table: `openai_model("gpt-oss-120b")` answers `permissive`
+/// and would claim every thinking level, including the `none` that model does
+/// not have. The registry already resolved the right row — `ApiSpec::make`
+/// is handed it — so the dialect takes it instead of guessing.
 pub(all) struct OpenAiDialect {
   model : String
+  info : @llm.ModelInfo
 } derive(Debug)
 
 ///|
-pub fn OpenAiDialect::make(model? : String) -> OpenAiDialect {
-  { model: model.unwrap_or("gpt-5.4-mini") }
+/// `info` defaults to OpenAI's own table, which is what a caller naming only
+/// a model means, and what every call site meant before the field existed.
+pub fn OpenAiDialect::make(
+  model? : String,
+  info? : @llm.ModelInfo,
+) -> OpenAiDialect {
+  let model = model.unwrap_or("gpt-5.4-mini")
+  { model, info: info.unwrap_or(openai_model(model)), }
 }
 
 ///|
@@ -100,7 +113,7 @@ pub impl @llm.Dialect for OpenAiDialect with fn lower_context(
         })
     }
   }
-  {
+  let body : Map[String, Json] = {
     "model": Json::string(self.model),
     "messages": Json::array(messages),
     "tools": Json::array(
@@ -117,6 +130,37 @@ pub impl @llm.Dialect for OpenAiDialect with fn lower_context(
       }),
     ),
   }
+  let params = ctx.params
+  // How hard to think. Asked for nothing means say nothing — the model's own
+  // default applies — so a caller who sets no params gets the body this
+  // dialect has always sent, unchanged. A level this model does not have is
+  // clamped to the nearest it does: `gpt-oss-120b` has no `none`, and asking
+  // one for it is a 400 rather than a downgrade.
+  if self.info.reasoning && params.effort is Some(level) {
+    if self.info.clamp_effort(level) is Some(name) {
+      body["reasoning_effort"] = Json::string(name)
+    }
+  }
+  // `max_completion_tokens`, not `max_tokens`: the second is deprecated on
+  // OpenAI's own API and the vendors that borrow this protocol take the
+  // first. Sending both is an error everywhere, so only one goes.
+  if params.max_output_tokens is Some(want) {
+    let capped = match self.info.max_output_tokens {
+      Some(cap) => if want < cap { want } else { cap }
+      None => want
+    }
+    // Same floor as the responses path: a cap under 16 is a mistake rather
+    // than an intent, so it is raised instead of refused.
+    body["max_completion_tokens"] = Json::number(
+      (if capped < 16 { 16 } else { capped }).to_double(),
+    )
+  }
+  // What is NOT here, and why: `pro_mode`, `reasoning_context` and
+  // `reasoning_summary` are Responses-API shapes with no chat-completions
+  // spelling, and `cache_key`/`cache_retention` lower to `prompt_cache_*`,
+  // which is OpenAI's own — firing it at every compatible vendor is how a
+  // shared mapping starts 400ing for the ones that never asked for it.
+  Json::object(body)
 }
 
 ///|

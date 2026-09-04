@@ -50,8 +50,11 @@ pub fn model_of(spec : @llm.ProviderSpec) -> String {
 /// The provider and model this environment selects, and its credential.
 ///
 /// `provider_env`, `model_env` and `priority` are arguments rather than
-/// constants because "HAEAS_PROVIDER" is one application's spelling and this
-/// module is meant to outlive it. `priority` is the order to try when nothing
+/// constants because the variable naming a provider belongs to the
+/// application asking, not to this module — `MYAPP_PROVIDER` is one spelling
+/// and this is meant to outlive it. Note the asymmetry with the per-provider
+/// `LLM_*_MODEL` names a `ProviderSpec` DOES carry: those are this module's,
+/// these two are the caller's. `priority` is the order to try when nothing
 /// named a provider: the first one whose key is set wins.
 ///
 /// A `provider_env` naming something this build does not know is ignored

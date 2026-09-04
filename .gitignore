@@ -4,3 +4,8 @@ target/
 target
 .mooncakes/
 .moonagent/
+
+# Real credentials. `.env.example` is the committed template.
+.env
+.env.*
+!.env.example

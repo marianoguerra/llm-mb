@@ -288,7 +288,7 @@ pub fn responses_api_spec() -> @llm.ApiSpec {
 pub fn completions_api_spec() -> @llm.ApiSpec {
   {
     id: "openai-completions",
-    make: info => OpenAiDialect::make(model=info.id),
+    make: info => OpenAiDialect::make(model=info.id, info~),
     caps: openai_model,
   }
 }

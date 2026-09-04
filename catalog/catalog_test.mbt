@@ -26,6 +26,10 @@ test "catalog: a label resolves to the dialect and model it names" {
     ("openai:gpt-5.6-sol", "openai-responses", "gpt-5.6-sol"),
     ("gemini:gemini-2.5-pro", "google-generative-ai", "gemini-2.5-pro"),
     ("openrouter:moonshotai/kimi-k3", "openrouter", "moonshotai/kimi-k3"),
+    // The one provider on a protocol it does not own: Cerebras answers as
+    // `openai-completions`, because that is what it speaks and it has no
+    // logged inferences addressed to a name of its own.
+    ("cerebras:gpt-oss-120b", "openai-completions", "gpt-oss-120b"),
     // No model: the provider's default, not an empty one.
     ("gemini", "google-generative-ai", "gemini-3.6-flash"),
   ]
@@ -78,6 +82,12 @@ test "catalog: each auth style puts the key where that provider wants it" {
   }
   assert_eq(url, "https://api.openai.com/v1/responses")
   assert_eq(headers.get("authorization"), Some("Bearer sk-o"))
+  guard registry.endpoint(provider="cerebras", model="gpt-oss-120b", key="sk-c")
+    is Ok((url, headers)) else {
+    fail("cerebras should resolve")
+  }
+  assert_eq(url, "https://api.cerebras.ai/v1/chat/completions")
+  assert_eq(headers.get("authorization"), Some("Bearer sk-c"))
   guard registry.endpoint(provider="gemini", model="gemini-2.5-pro", key="sk-g")
     is Ok((url, headers)) else {
     fail("gemini should resolve")
@@ -156,4 +166,61 @@ test "catalog: every label it offers is one it can resolve" {
   for label in labels {
     assert_true(registry.dialect_of(label) is Some(_))
   }
+}
+
+///|
+/// The rows Cerebras ships rather than the ids: the two models disagree about
+/// whether reasoning can be turned off, and that disagreement is the whole
+/// reason they are rows. `permissive` would have said yes to both.
+test "catalog: cerebras rows say which model can stop thinking" {
+  let registry = @catalog.default_registry()
+  guard registry.model_info(provider="cerebras", model="gpt-oss-120b")
+    is Some(oss) else {
+    fail("gpt-oss-120b should have a row")
+  }
+  // No `none` to clamp to, so the least it can do is `low`.
+  assert_eq(oss.clamp_effort(Off), Some("low"))
+  assert_eq(oss.context_window, 131_072)
+  assert_eq(oss.max_output_tokens, Some(40_960))
+  assert_true(!oss.accepts(ImageIn))
+  guard registry.model_info(provider="cerebras", model="gemma-4-31b")
+    is Some(gemma) else {
+    fail("gemma-4-31b should have a row")
+  }
+  assert_eq(gemma.clamp_effort(Off), Some("none"))
+  assert_true(gemma.accepts(ImageIn))
+}
+
+///|
+/// The whole wiring in one turn: the row Cerebras ships reaches the body a
+/// dialect the REGISTRY built lowers. Every other test here checks one link —
+/// this is the one that fails if `completions_api_spec` stops handing the
+/// resolved row to the dialect, which is the only thing making the row matter.
+test "catalog: a cerebras turn lowers with the effort its row allows" {
+  let registry = @catalog.default_registry()
+  guard registry.dialect_of("cerebras:gpt-oss-120b") is Some(dialect) else {
+    fail("cerebras should resolve")
+  }
+  let ctx : @llm.LlmContext = {
+    system: None,
+    messages: [UserMsg(content=[UserText("hi")])],
+    tools: [],
+    // `Off` is the level this model does not have.
+    params: { ..@llm.LlmParams::default(), effort: Some(Off), },
+  }
+  guard dialect.lower_context(ctx)
+    is { "model": String(model), "reasoning_effort": String(effort), .. } else {
+    fail("a cerebras body should carry a clamped effort")
+  }
+  assert_eq(model, "gpt-oss-120b")
+  // Clamped up, because the row says `none` does not exist here.
+  assert_eq(effort, "low")
+  // And gemma, which does have it, is left alone.
+  guard registry.dialect_of("cerebras:gemma-4-31b") is Some(gemma) else {
+    fail("gemma should resolve")
+  }
+  guard gemma.lower_context(ctx) is { "reasoning_effort": String(off), .. } else {
+    fail("gemma should carry an effort too")
+  }
+  assert_eq(off, "none")
 }

@@ -16,7 +16,7 @@ pub fn api_spec() -> @llm.ApiSpec
 pub(all) struct OpenRouterDialect {
   inner : @openai.OpenAiDialect
 } derive(@debug.Debug)
-pub fn OpenRouterDialect::make(model? : String) -> Self
+pub fn OpenRouterDialect::make(model? : String, info? : @llm.ModelInfo) -> Self
 pub impl @llm.Dialect for OpenRouterDialect
 
 // Type aliases

@@ -163,10 +163,9 @@ test "an attached image lowers to an anthropic image block" {
 }
 
 ///|
-/// A tool to lower, and nothing more. What the hypermedia client's two tools
-/// actually say is the embedding application's business; a dialect test only
-/// needs one decl to watch travel into the provider's own spelling of a tool
-/// list.
+/// A tool to lower, and nothing more. What a caller's tools actually say is
+/// the embedding application's business; a dialect test only needs one decl
+/// to watch travel into the provider's own spelling of a tool list.
 fn tool_decl(name : String) -> @llm.ToolDecl {
   {
     name,
@@ -263,7 +262,7 @@ fn one_turn(retention : @llm.CacheRetention) -> @llm.LlmContext {
     system: Some("sys prompt"),
     messages: [UserMsg(content=[UserText("hello")])],
     tools: [],
-    params: { ..@llm.LlmParams::default(), cache_retention: retention },
+    params: { ..@llm.LlmParams::default(), cache_retention: retention, },
   }
 }
 

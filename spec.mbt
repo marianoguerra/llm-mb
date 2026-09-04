@@ -617,7 +617,8 @@ pub fn Registry::endpoint(
 
 ///|
 /// Provider API errors are data on the message, never exceptions. Matches
-/// the `{"error": {"message": ...}}` shape all providers answer with.
+/// the wrapped `{"error": {"message": ...}}` shape, and the bare one an
+/// OpenAI-compatible vendor may answer with instead.
 #declaration_only
 pub fn api_error(reply : Json, model~ : String) -> ContextMessage? {
   ...
