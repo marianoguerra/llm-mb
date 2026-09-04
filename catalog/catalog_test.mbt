@@ -189,6 +189,20 @@ test "catalog: cerebras rows say which model can stop thinking" {
   }
   assert_eq(gemma.clamp_effort(Off), Some("none"))
   assert_true(gemma.accepts(ImageIn))
+  // The third one is hyphenated where models.dev spells it `qwen3.8-27b` for
+  // almost every other provider. `GET /v1/models` on Cerebras is the
+  // authority for an id that goes into a request body, and it says this.
+  guard registry.model_info(provider="cerebras", model="qwen-3.8-27b")
+    is Some(qwen) else {
+    fail("qwen-3.8-27b should have a row")
+  }
+  assert_eq(qwen.clamp_effort(Off), Some("none"))
+  // Probed: all three reject the levels either side of Cerebras' four.
+  assert_eq(qwen.clamp_effort(Minimal), Some("low"))
+  assert_eq(qwen.clamp_effort(Max), Some("high"))
+  assert_true(qwen.accepts(ImageIn))
+  // The one row here nobody has published a price for.
+  assert_true(qwen.cost is None)
 }
 
 ///|

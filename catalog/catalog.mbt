@@ -18,19 +18,29 @@ fn json_headers() -> Map[String, String] {
 }
 
 ///|
-/// Cerebras' two public models, as rows rather than as ids.
+/// Cerebras' three public models, as rows rather than as ids.
 ///
 /// They earn rows because they disagree about the one thing a row decides:
 /// `gpt-oss-120b` has no `none` level — its reasoning cannot be turned off —
-/// while `gemma-4-31b` has one. `permissive_models` would offer both every
-/// level there is, and `clamp_effort` would hand `gpt-oss-120b` a `none` it
-/// answers with a 400. With the rows, `Off` clamps UP to `low`, which is the
-/// least the model can do rather than an error.
+/// while the other two have one. `permissive_models` would offer all three
+/// every level there is, and `clamp_effort` would hand `gpt-oss-120b` a
+/// `none` it answers with a 400. With the rows, `Off` clamps UP to `low`,
+/// which is the least that model can do rather than an error.
 ///
-/// UNPROBED, in the sense openai/models.mbt means it: these figures are
-/// models.dev's, by way of the catalog pi.dev generates from it, and nobody
-/// has sent either model a level to watch it be rejected. Cerebras' own docs
-/// are thinner and disagree about whether these reason at all.
+/// The `thinking_levels` here are PROBED, the way openai/models.mbt means
+/// it: every level below was sent to its model and the answer read. All
+/// three reject `minimal`, `xhigh` and `max` with
+///
+///     reasoning_effort: Input should be 'none', 'low', 'medium' or 'high'
+///
+/// and only `gpt-oss-120b` also rejects `none`. That last one had been a
+/// reading from models.dev and turns out to have been right.
+///
+/// The rest of each row is NOT probed. `context_window` is Cerebras' own
+/// documented paid-tier figure, `max_output_tokens` is what models.dev
+/// reports for the two it lists — the API takes a `max_completion_tokens` of
+/// 9_999_999 without complaint, so there is no ceiling to read back. Cost is
+/// per-provider and models.dev prices only two of the three.
 fn cerebras_models() -> Array[@llm.ModelInfo] {
   [
     {
@@ -73,6 +83,32 @@ fn cerebras_models() -> Array[@llm.ModelInfo] {
         cache_read: 0.0,
         cache_write: 0.0,
       }),
+    },
+    {
+      // `qwen-3.8-27b`, hyphenated, is what `GET /v1/models` calls it here.
+      // models.dev spells it `qwen3.8-27b` for 38 of the 39 providers that
+      // carry the model, which makes the unhyphenated form the one to expect
+      // and the wrong one to send to THIS provider — the id is the
+      // provider's, not the model's.
+      id: "qwen-3.8-27b",
+      api: None,
+      reasoning: true,
+      thinking_levels: [
+        (Off, "none"),
+        (Low, "low"),
+        (Medium, "medium"),
+        (High, "high"),
+      ],
+      supports_pro_mode: false,
+      reasoning_contexts: [],
+      input: [TextIn, ImageIn],
+      context_window: 131_072,
+      max_output_tokens: Some(40_960),
+      // No price. models.dev does not list Cerebras as serving this model at
+      // all, so its figures there are some other provider's, and a made-up
+      // third row would be the one entry a reader could not trust. None is
+      // what "nobody has published one" looks like.
+      cost: None,
     },
   ]
 }

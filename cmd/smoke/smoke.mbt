@@ -9,20 +9,26 @@
 // be reached, and `@wire.configured` already answers exactly that question.
 
 ///|
-/// The cheapest model each provider serves, which is not the one its row
-/// defaults to.
+/// The model each provider gets exercised on: the cheapest one that actually
+/// does both cases, which is not the one its row defaults to.
 ///
 /// A deliberate override of `LLM_*_MODEL` and of `default_model`: this
 /// program exists to be run often and cost nothing, and a smoke test on
 /// `claude-opus-5` is a smoke test nobody runs twice. A provider missing
-/// from this table falls back to its own default, so an operator's fifth
+/// from this table falls back to its own default, so an operator's sixth
 /// vendor still gets exercised.
-fn cheapest(provider : String) -> String? {
+///
+/// "Cheapest that works" and not "cheapest": `gpt-5-nano` is a third the
+/// price of `gpt-5-mini` and answers the tool case in prose about a third of
+/// the time, at every effort and output cap tried. A smoke test that fails
+/// when nothing is broken is worse than useless — it teaches you to ignore
+/// it — and the difference here is a hundredth of a cent.
+fn smoke_model(provider : String) -> String? {
   match provider {
     "anthropic" => Some("claude-haiku-4-5")
-    // `-nano` reasons at `minimal` and cannot be turned off, which is what
-    // the Off below clamps onto.
-    "openai" => Some("gpt-5-nano")
+    // `-mini` at `minimal`, which is what the `Off` below clamps onto: three
+    // for three on the tool case where `-nano` was two for three.
+    "openai" => Some("gpt-5-mini")
     "gemini" => Some("gemini-2.5-flash-lite")
     "openrouter" => Some("openai/gpt-5.4-mini")
     // Cerebras serves two, and this is the cheaper.
@@ -35,12 +41,12 @@ fn cheapest(provider : String) -> String? {
 /// The model this run will actually use: the cheap one where the provider
 /// still lists it, its own default otherwise.
 ///
-/// The fallback is not defensive padding. `cheapest` names ids that live in
+/// The fallback is not defensive padding. `smoke_model` names ids that live in
 /// another package, and `Registry::endpoint` refuses a model the provider
 /// does not list — so a catalog that retires one should cost this run a
 /// little more money, not the whole provider.
 fn model_for(spec : @llm.ProviderSpec) -> String {
-  guard cheapest(spec.id) is Some(want) else { return spec.default_model }
+  guard smoke_model(spec.id) is Some(want) else { return spec.default_model }
   if spec.models.search_by(m => m.id == want) is Some(_) {
     want
   } else {
@@ -66,7 +72,7 @@ fn ping_tool() -> @llm.ToolDecl {
 ///|
 /// Ask for as little thought and as few tokens as the dial allows. `Off`
 /// clamps to whatever the model's own row says is least — `minimal` on
-/// gpt-5-nano, `low` on gpt-oss-120b — so this is "cheapest available"
+/// gpt-5-mini, `low` on gpt-oss-120b — so this is "cheapest available"
 /// rather than a level anyone has to have.
 fn frugal(cap : Int) -> @llm.LlmParams {
   {
