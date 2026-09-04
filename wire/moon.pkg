@@ -11,5 +11,5 @@ supported_targets = "native"
 import {
   "marianoguerra/llm",
   "moonbitlang/async/http",
-  "moonbitlang/x/sys",
+  "moonbitlang/core/env",
 }

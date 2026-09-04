@@ -4,7 +4,7 @@
 
 ///|
 pub fn StreamState::new() -> StreamState {
-  { chunks: [] }
+  { chunks: [], }
 }
 
 ///|

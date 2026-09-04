@@ -28,7 +28,7 @@ pub(all) struct OpenAiResponsesDialect {
 
 ///|
 pub fn OpenAiResponsesDialect::make(model? : String) -> OpenAiResponsesDialect {
-  { model: model.unwrap_or("gpt-5.6-sol") }
+  { model: model.unwrap_or("gpt-5.6-sol"), }
 }
 
 ///|

@@ -8,7 +8,7 @@ pub fn Usage::make(
   cache_read? : Int = 0,
   cache_write? : Int = 0,
 ) -> Usage {
-  { input, output, cache_read, cache_write }
+  { input, output, cache_read, cache_write, }
 }
 
 ///|

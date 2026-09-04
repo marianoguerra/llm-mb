@@ -12,7 +12,7 @@ pub fn key_of(spec : @llm.ProviderSpec) -> String? {
   if spec.key_env == "" {
     return Some("")
   }
-  @sys.get_env_var(spec.key_env)
+  @env.get_env_var(spec.key_env)
 }
 
 ///|
@@ -43,7 +43,7 @@ pub fn model_of(spec : @llm.ProviderSpec) -> String {
   if spec.model_env == "" {
     return spec.default_model
   }
-  @sys.get_env_var(spec.model_env).unwrap_or(spec.default_model)
+  @env.get_env_var(spec.model_env).unwrap_or(spec.default_model)
 }
 
 ///|
@@ -66,7 +66,7 @@ pub fn from_env(
   let named = if provider_env == "" {
     None
   } else {
-    @sys.get_env_var(provider_env)
+    @env.get_env_var(provider_env)
   }
   let chosen = match named {
     Some(name) if registry.provider(name) is Some(spec) &&
@@ -87,7 +87,7 @@ pub fn from_env(
   let model = if model_env == "" {
     model_of(spec)
   } else {
-    @sys.get_env_var(model_env).unwrap_or(model_of(spec))
+    @env.get_env_var(model_env).unwrap_or(model_of(spec))
   }
   Some((spec, model, key))
 }

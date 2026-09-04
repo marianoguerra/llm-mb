@@ -12,7 +12,7 @@ pub fn Registry::of(
   for api in apis {
     by_id[api.id] = api
   }
-  { apis: by_id, providers }
+  { apis: by_id, providers, }
 }
 
 ///|
@@ -22,14 +22,14 @@ pub fn Registry::with_provider(
 ) -> Registry {
   let providers = self.providers.filter(p => p.id != spec.id)
   providers.push(spec)
-  { apis: self.apis, providers }
+  { apis: self.apis, providers, }
 }
 
 ///|
 pub fn Registry::with_api(self : Registry, spec : ApiSpec) -> Registry {
   let apis = self.apis.copy()
   apis[spec.id] = spec
-  { apis, providers: self.providers }
+  { apis, providers: self.providers, }
 }
 
 ///|

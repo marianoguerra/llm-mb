@@ -294,7 +294,7 @@ test "responses lower_context: user content is always typed parts" {
 ///|
 /// An empty turn, so a test can say only what it is about: the knobs.
 fn with_params(params : @llm.LlmParams) -> @llm.LlmContext {
-  { system: None, messages: [], tools: [], params }
+  { system: None, messages: [], tools: [], params, }
 }
 
 ///|
@@ -313,7 +313,10 @@ fn lower_with(model : String, params : @llm.LlmParams) -> Json {
 /// it can, not less than it was asked.
 test "responses lower_context: effort is clamped to the model's own levels" {
   fn effort_of(model : String, level : @llm.ThinkingLevel) -> String {
-    guard lower_with(model, { ..@llm.LlmParams::default(), effort: Some(level) })
+    guard lower_with(model, {
+        ..@llm.LlmParams::default(),
+        effort: Some(level),
+      })
       is { "reasoning": { "effort": String(name), .. }, .. } else {
       return "<absent>"
     }
@@ -384,7 +387,10 @@ test "responses lower_context: pro mode and persisted reasoning are dropped wher
   guard! lower_with("gpt-5.2", asked) is { "reasoning": oldest, .. }
   json_inspect(oldest, content={ "effort": "high", "summary": "auto" })
   // ...but the setting it does have still travels.
-  guard! lower_with("gpt-5.2", { ..asked, reasoning_context: Some(CurrentTurn) })
+  guard! lower_with("gpt-5.2", {
+      ..asked,
+      reasoning_context: Some(CurrentTurn),
+    })
     is { "reasoning": { "context": String(kept), .. }, .. }
   inspect(kept, content="current_turn")
 }

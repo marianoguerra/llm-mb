@@ -11,7 +11,7 @@ pub(all) struct GeminiDialect {
 
 ///|
 pub fn GeminiDialect::make(model? : String) -> GeminiDialect {
-  { model: model.unwrap_or("gemini-2.5-flash") }
+  { model: model.unwrap_or("gemini-2.5-flash"), }
 }
 
 ///|

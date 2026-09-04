@@ -14,7 +14,7 @@ pub fn RelayTransport::make(
   post~ : (String, String, String, (String) -> Unit, (String) -> Unit) -> Unit,
   stop? : (String) -> Unit = _ => (),
 ) -> RelayTransport {
-  { post, stop }
+  { post, stop, }
 }
 
 ///|
