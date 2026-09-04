@@ -333,7 +333,7 @@ pub fn StreamState::text(self : StreamState) -> String {
 /// never learns which provider is on the other end.
 pub(open) trait Dialect {
   fn id(Self) -> String // "anthropic-messages", "openai-completions", ...
-  /// Which model of that protocol this one speaks to — "gemini-3.6-flash".
+  /// Which model of that protocol this one speaks to — "gemini-3.8-flash".
   ///
   /// Three of the four dialects put it in the body they lower, so nothing
   /// outside them needed to know it. Gemini's endpoint carries it in the URL

@@ -31,7 +31,7 @@ test "catalog: a label resolves to the dialect and model it names" {
     // logged inferences addressed to a name of its own.
     ("cerebras:gpt-oss-120b", "openai-completions", "gpt-oss-120b"),
     // No model: the provider's default, not an empty one.
-    ("gemini", "google-generative-ai", "gemini-3.6-flash"),
+    ("gemini", "google-generative-ai", "gemini-3.8-flash"),
   ]
   for case in cases {
     let (label, api, model) = case
@@ -110,7 +110,7 @@ test "catalog: endpoint serves what it lists, and says so when it does not" {
   guard registry.endpoint(provider="gemini", model="", key="k") is Ok((url, _)) else {
     fail("an empty model should take the default")
   }
-  assert_true(url.contains("gemini-3.6-flash"))
+  assert_true(url.contains("gemini-3.8-flash"))
   guard registry.endpoint(provider="gemini", model="gemini-9", key="k")
     is Err(why) else {
     fail("an unlisted model should be refused")

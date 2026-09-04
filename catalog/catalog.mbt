@@ -201,14 +201,14 @@ pub fn gemini_provider() -> @llm.ProviderSpec {
     auth: KeyQuery("key"),
     key_env: "GEMINI_API_KEY",
     model_env: "LLM_GEMINI_MODEL",
-    default_model: "gemini-3.6-flash",
+    default_model: "gemini-3.8-flash",
     models: permissive_models([
       // The two `-latest` entries are rolling aliases: they follow the newest
       // flash of their tier rather than pinning one, which is a different
       // choice from naming a version and so is offered beside it.
-      "gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-3.5-flash-lite",
-      "gemini-flash-lite-latest", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite",
-      "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite",
+      "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-flash-latest",
+      "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.1-pro-preview",
+      "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite",
     ]),
     headers: json_headers(),
     telemetry_name: "gcp.gemini",
