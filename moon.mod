@@ -21,13 +21,5 @@ description = "A dialect-agnostic LLM IR, one wire mapping per provider protocol
 preferred_target = "wasm-gc"
 
 import {
-  "moonbitlang/async@0.21.2",
+  "moonbitlang/async@0.21.3",
 }
-
-// `cmd/` is this repo's own tooling — a live smoke test against whichever
-// providers the operator has keys for. It is native, it is not importable,
-// and nobody installing this module can use it, so it does not ship.
-
-options(
-  exclude: [ "cmd" ],
-)

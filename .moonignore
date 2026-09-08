@@ -1,0 +1,21 @@
+# What `moon publish` ships is what git tracks, minus what is listed here.
+#
+# This replaces the `exclude` field `moon.mod` used to carry, which moon now
+# warns is deprecated. One catch comes with the move: a `.moonignore` takes
+# precedence over the `.gitignore` beside it, for its directory and everything
+# below, so the build outputs are repeated here rather than inherited. Dotfiles
+# at any depth and `_build/` are dropped by moon regardless of what is written.
+_build/
+target/
+target
+
+# `cmd/` is this repo's own tooling — a live smoke test against whichever
+# providers the operator has keys for. It is native, it is not importable,
+# and nobody installing this module can use it, so it does not ship.
+cmd/
+
+# Dotfiles are dropped at every depth, and `.env.example` is a dotfile that has
+# always shipped: it is the committed template naming the variable each provider
+# reads its key from, which is exactly what a consumer of `wire` needs. Say so
+# explicitly to keep it.
+!/.env.example
