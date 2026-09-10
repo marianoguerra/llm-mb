@@ -238,3 +238,31 @@ test "catalog: a cerebras turn lowers with the effort its row allows" {
   }
   assert_eq(off, "none")
 }
+
+///|
+/// The escape hatch for everything the trim dropped: a consumer rebuilds the
+/// ProviderSpec with its own model list and swaps it in. Worth a test because
+/// `endpoint` and `model_info` disagree on purpose — `model_info` will lower
+/// for an unlisted model, `endpoint` refuses it, and it is `endpoint` that
+/// decides whether a removed id is still reachable.
+test "catalog: a consumer adds back a trimmed model" {
+  let base = @catalog.default_registry()
+  guard base.provider("openrouter") is Some(spec) else { fail("no openrouter") }
+  let models = spec.models.copy()
+  models.push(@llm.ModelInfo::permissive("qwen/qwen3.7-max"))
+  let registry = base.with_provider({ ..spec, models, })
+  // endpoint refuses an unlisted model; this one is listed again now.
+  assert_true(
+    registry.endpoint(provider="openrouter", model="qwen/qwen3.7-max", key="sk")
+    is Ok(_),
+  )
+  assert_true(
+    base.endpoint(provider="openrouter", model="qwen/qwen3.7-max", key="sk")
+    is Err(_),
+  )
+  // with_provider appends, so the replaced provider moves to last.
+  assert_eq(
+    registry.providers[registry.providers.length() - 1].id,
+    "openrouter",
+  )
+}
