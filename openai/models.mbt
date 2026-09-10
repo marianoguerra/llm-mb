@@ -78,7 +78,16 @@ fn efforts_5_2() -> Array[(@llm.ThinkingLevel, String)] {
 ///|
 /// gpt-6-astra: the 5.6 dial minus `none`. Reasoning cannot be turned off,
 /// so `Off` clamps UP to `low` the way it does for Cerebras' gpt-oss-120b.
-/// UNPROBED (models.dev).
+///
+/// PROBED. Every level below was sent and the answer read: `low`, `medium`,
+/// `high`, `xhigh` and `max` all answer 200, and both `none` and `minimal`
+/// come back 400 with
+///
+///     Unsupported value: 'none' is not supported with the 'gpt-6-astra'
+///     model. Supported values are: 'low', 'medium', 'high', 'xhigh', and
+///     'max'.
+///
+/// which is the model naming this list itself.
 fn efforts_astra() -> Array[(@llm.ThinkingLevel, String)] {
   [
     (Low, "low"),
@@ -135,10 +144,11 @@ fn contexts_current_only() -> Array[@llm.ReasoningContext] {
 /// is a better failure than silently thinking less than it was asked to.
 pub fn openai_model(id : String) -> @llm.ModelInfo {
   match id {
-    // UNPROBED. The window follows the convention the `-pro` rows set: carry
-    // the nearest probed sibling's figure rather than models.dev's, which
-    // reads 1_050_000 for the whole gpt-5.6 family too and disagrees with
-    // what those rows measured.
+    // The dial is probed (see `efforts_astra`); the WINDOW is not. It
+    // follows the convention the `-pro` rows set — carry the nearest probed
+    // sibling's figure rather than models.dev's, which reads 1_050_000 for
+    // the whole gpt-5.6 family too and disagrees with what those rows
+    // measured.
     "gpt-6-astra" =>
       row(
         id,

@@ -18,18 +18,27 @@
 /// from this table falls back to its own default, so an operator's sixth
 /// vendor still gets exercised.
 ///
-/// "Cheapest that works" and not "cheapest": `gpt-5-nano` is a third the
-/// price of `gpt-5-mini` and answers the tool case in prose about a third of
+/// "Cheapest that works" and not "cheapest": `gpt-5-nano` was a third the
+/// price of `gpt-5-mini` and answered the tool case in prose about a third of
 /// the time, at every effort and output cap tried. A smoke test that fails
 /// when nothing is broken is worse than useless — it teaches you to ignore
 /// it — and the difference here is a hundredth of a cent.
+///
+/// EVERY ID HERE MUST BE ONE THE CATALOG LISTS. `model_for` falls back to the
+/// provider's default when it is not, which is right for an operator's sixth
+/// vendor and silent for a typo — and silence here costs money rather than a
+/// failure. Trimming the catalog to two models per size group left this table
+/// naming a `gpt-5-mini` and a `gemini-2.5-flash-lite` that were gone, and a
+/// full run quietly moved onto gpt-5.6-sol at eight times the price. The test
+/// below is what makes that loud.
 fn smoke_model(provider : String) -> String? {
   match provider {
     "anthropic" => Some("claude-haiku-4-5")
-    // `-mini` at `minimal`, which is what the `Off` below clamps onto: three
-    // for three on the tool case where `-nano` was two for three.
-    "openai" => Some("gpt-5-mini")
-    "gemini" => Some("gemini-2.5-flash-lite")
+    // Luna is the cheap lane of the 5.6 family and has a real `none`, so the
+    // `Off` below is off rather than clamped onto a `minimal` that no longer
+    // exists anywhere in this catalog.
+    "openai" => Some("gpt-5.6-luna")
+    "gemini" => Some("gemini-3.1-flash-lite")
     "openrouter" => Some("openai/gpt-5.4-mini")
     // Cerebras serves two, and this is the cheaper.
     "cerebras" => Some("gpt-oss-120b")
