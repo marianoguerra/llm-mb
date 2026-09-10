@@ -162,7 +162,7 @@ test "catalog: every label it offers is one it can resolve" {
   let registry = @catalog.default_registry()
   let labels = registry.labels()
   assert_true(labels.length() > 40)
-  assert_eq(labels[0], "openai:gpt-5.6")
+  assert_eq(labels[0], "openai:gpt-6-astra")
   for label in labels {
     assert_true(registry.dialect_of(label) is Some(_))
   }

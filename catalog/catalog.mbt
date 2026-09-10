@@ -174,10 +174,11 @@ pub fn anthropic_provider() -> @llm.ProviderSpec {
     key_env: "ANTHROPIC_API_KEY",
     model_env: "LLM_ANTHROPIC_MODEL",
     default_model: "claude-sonnet-5",
+    // The two newest of each size group: fable (xl), opus (lg), sonnet (md).
+    // Haiku is one row rather than two because 4.5 is the only one there is.
     models: permissive_models([
-      "claude-opus-5", "claude-sonnet-5", "claude-fable-5", "claude-opus-4-8", "claude-opus-4-7",
-      "claude-opus-4-6", "claude-opus-4-5", "claude-sonnet-4-6", "claude-sonnet-4-5",
-      "claude-haiku-4-5", "claude-opus-4-1",
+      "claude-fable-5-1", "claude-fable-5", "claude-opus-5", "claude-opus-4-8", "claude-sonnet-5",
+      "claude-sonnet-4-6", "claude-haiku-4-5",
     ]),
     headers: {
       "content-type": "application/json",
@@ -203,12 +204,13 @@ pub fn gemini_provider() -> @llm.ProviderSpec {
     model_env: "LLM_GEMINI_MODEL",
     default_model: "gemini-3.8-flash",
     models: permissive_models([
-      // The two `-latest` entries are rolling aliases: they follow the newest
-      // flash of their tier rather than pinning one, which is a different
-      // choice from naming a version and so is offered beside it.
-      "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-flash-latest",
-      "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.1-pro-preview",
-      "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite",
+      // The two newest pro (lg), flash (md) and flash-lite (sm). The two
+      // `-latest` entries are rolling aliases: they follow the newest flash
+      // of their tier rather than pinning one, which is a different choice
+      // from naming a version, so they sit beside the count rather than in
+      // it — a date rule can only ever tie them with what they point at.
+      "gemini-3.1-pro-preview", "gemini-2.5-pro", "gemini-3.8-flash", "gemini-3.7-flash",
+      "gemini-flash-latest", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-lite-latest",
     ]),
     headers: json_headers(),
     telemetry_name: "gcp.gemini",
@@ -227,13 +229,19 @@ pub fn openrouter_provider() -> @llm.ProviderSpec {
     key_env: "OPENROUTER_API_KEY",
     model_env: "LLM_OPENROUTER_MODEL",
     default_model: "openai/gpt-5.4-mini",
+    // Two per size group, counted per MODEL FAMILY rather than per provider:
+    // OpenRouter is a dozen vendors behind one endpoint, and trimming it as
+    // one list would keep two Qwens and drop Grok entirely. A family with
+    // only one row in a group has only one to offer.
     models: permissive_models([
-      "openai/gpt-5.4-mini", "moonshotai/kimi-k3", "moonshotai/kimi-k2.7-code", "moonshotai/kimi-k2.6",
-      "qwen/qwen3.8-max", "qwen/qwen3.7-max", "qwen/qwen3.7-plus", "qwen/qwen3.7-flash",
-      "qwen/qwen3-coder-next", "deepseek/deepseek-v4-pro", "deepseek/deepseek-v4-flash",
-      "deepseek/deepseek-v4-flash-0731", "minimax/minimax-m3", "x-ai/grok-4.5", "z-ai/glm-5.2",
-      "meta/muse-spark-1.2", "mistralai/mistral-medium-3-5", "thinkingmachines/inkling",
-      "tencent/hy3",
+      "qwen/qwen3.8-max-0902", "qwen/qwen3.8-2.4t-a95b", "qwen/qwen3.7-plus", "qwen/qwen3-coder-next",
+      "qwen/qwen3.8-flash", "qwen/qwen3.7-flash", "deepseek/deepseek-v4-pro-0813",
+      "deepseek/deepseek-v4-pro", "deepseek/deepseek-v4.1-flash", "deepseek/deepseek-v4-flash-vision-exp",
+      "moonshotai/kimi-k3", "moonshotai/kimi-k2.7-code", "moonshotai/kimi-k2.6",
+      "x-ai/grok-4.6", "x-ai/grok-4.5", "z-ai/glm-5.3", "z-ai/glm-5.2", "z-ai/glm-5.3-flash",
+      "meta/muse-spark-1.3", "meta/muse-spark-1.2", "tencent/hy4-preview", "tencent/hy3",
+      "thinkingmachines/inkling", "thinkingmachines/inkling-small", "minimax/minimax-m3",
+      "mistralai/mistral-medium-3-5", "openai/gpt-5.4-mini",
     ]),
     headers: json_headers(),
     telemetry_name: "openrouter",

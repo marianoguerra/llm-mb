@@ -76,6 +76,20 @@ fn efforts_5_2() -> Array[(@llm.ThinkingLevel, String)] {
 }
 
 ///|
+/// gpt-6-astra: the 5.6 dial minus `none`. Reasoning cannot be turned off,
+/// so `Off` clamps UP to `low` the way it does for Cerebras' gpt-oss-120b.
+/// UNPROBED (models.dev).
+fn efforts_astra() -> Array[(@llm.ThinkingLevel, String)] {
+  [
+    (Low, "low"),
+    (Medium, "medium"),
+    (High, "high"),
+    (XHigh, "xhigh"),
+    (Max, "max"),
+  ]
+}
+
+///|
 /// The `-pro` variants: no way to turn reasoning off and no `low` — thinking
 /// less is the thing you did not buy. UNPROBED (models.dev).
 fn efforts_pro() -> Array[(@llm.ThinkingLevel, String)] {
@@ -121,6 +135,20 @@ fn contexts_current_only() -> Array[@llm.ReasoningContext] {
 /// is a better failure than silently thinking less than it was asked to.
 pub fn openai_model(id : String) -> @llm.ModelInfo {
   match id {
+    // UNPROBED. The window follows the convention the `-pro` rows set: carry
+    // the nearest probed sibling's figure rather than models.dev's, which
+    // reads 1_050_000 for the whole gpt-5.6 family too and disagrees with
+    // what those rows measured.
+    "gpt-6-astra" =>
+      row(
+        id,
+        reasoning=true,
+        efforts=efforts_astra(),
+        supports_pro_mode=true,
+        contexts=contexts_persisted(),
+        context_window=272_000,
+        max_output_tokens=Some(128_000),
+      )
     // "gpt-5.6" is the alias that routes to Sol.
     "gpt-5.6" | "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna" =>
       row(
@@ -261,12 +289,12 @@ pub fn openai_model(id : String) -> @llm.ModelInfo {
 /// the offer IS the row.
 pub fn openai_models() -> Array[@llm.ModelInfo] {
   [
-    // "gpt-5.6" is the alias that routes to Sol; both are listed because
-    // pinning the variant and following the alias are different choices.
-    "gpt-5.6", "gpt-5.6-sol", "gpt-5.6-luna", "gpt-5.6-terra", "gpt-5.5", "gpt-5.5-pro",
-    "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.3-codex", "gpt-5.3-codex-spark",
-    "gpt-5.2", "gpt-5.2-pro", "gpt-5.1", "gpt-5", "gpt-5-pro", "gpt-5-mini", "gpt-5-nano",
-    "gpt-4.1", "gpt-4.1-mini", "o3", "o4-mini",
+    // xl, then lg, md, sm — the two newest of each, which is what the list is
+    // now trimmed to. "gpt-5.6" is the alias that routes to Sol; it sits
+    // outside that count because pinning the variant and following the alias
+    // are different choices, not two different models.
+    "gpt-6-astra", "gpt-5.5-pro", "gpt-5.6", "gpt-5.6-sol", "gpt-5.5", "gpt-5.6-terra",
+    "gpt-5.3-codex", "gpt-5.6-luna", "gpt-5.4-mini",
   ].map(openai_model)
 }
 
