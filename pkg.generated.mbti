@@ -135,6 +135,7 @@ pub fn Registry::of(Array[ApiSpec], Array[ProviderSpec]) -> Self
 pub fn Registry::provider(Self, String) -> ProviderSpec?
 pub fn Registry::provider_for_api(Self, String) -> ProviderSpec?
 pub fn Registry::with_api(Self, ApiSpec) -> Self
+pub fn Registry::with_model(Self, provider~ : String, ModelInfo) -> Self?
 pub fn Registry::with_provider(Self, ProviderSpec) -> Self
 
 pub(all) struct RelayTransport {

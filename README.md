@@ -81,6 +81,29 @@ KeyQuery(name) | NoAuth` — the credential itself is never in a `ProviderSpec`,
 only the name of the variable holding it, which is what lets one compile into a
 page.
 
+## Adding a model
+
+The catalog lists two models per size group per provider, which is a curation
+and not a limit. A model it does not list — one shipped after this version,
+or one the trim dropped — is a value too:
+
+```moonbit
+let registry = @catalog.default_registry()
+  .with_model(provider="openrouter", @llm.ModelInfo::permissive("deepseek/deepseek-v4.1-flash"))
+  .unwrap()
+```
+
+Every predefined model stays; this adds one beside them. `None` means no
+provider has that id. Passing a model the provider already lists replaces that
+row in place, which is how a caller narrows a `permissive` entry to what a
+model actually accepts, and the provider keeps its position in the selector
+where `with_provider` would move it to the end.
+
+This matters because `Registry::endpoint` refuses a model the provider does
+not list — `model_info` will happily lower a turn for an unknown id, on the
+theory that a proxy's table may be newer than this one, but the id only
+reaches a URL if it is listed.
+
 ## Adding a wire protocol
 
 A new `Dialect` impl plus an `ApiSpec` naming it, handed to

@@ -240,29 +240,81 @@ test "catalog: a cerebras turn lowers with the effort its row allows" {
 }
 
 ///|
-/// The escape hatch for everything the trim dropped: a consumer rebuilds the
-/// ProviderSpec with its own model list and swaps it in. Worth a test because
-/// `endpoint` and `model_info` disagree on purpose — `model_info` will lower
-/// for an unlisted model, `endpoint` refuses it, and it is `endpoint` that
-/// decides whether a removed id is still reachable.
-test "catalog: a consumer adds back a trimmed model" {
+/// The escape hatch for everything the trim dropped, and for anything shipped
+/// after this version: a caller adds the model itself and keeps every
+/// predefined one. Worth a test because `endpoint` and `model_info` disagree
+/// on purpose — `model_info` will lower for an unlisted model, `endpoint`
+/// refuses it, and it is `endpoint` that decides whether an id is reachable.
+test "catalog: a consumer adds a model the catalog never listed" {
   let base = @catalog.default_registry()
-  guard base.provider("openrouter") is Some(spec) else { fail("no openrouter") }
-  let models = spec.models.copy()
-  models.push(@llm.ModelInfo::permissive("qwen/qwen3.7-max"))
-  let registry = base.with_provider({ ..spec, models, })
-  // endpoint refuses an unlisted model; this one is listed again now.
+  // A model released after this build: unlisted, so refused at the one place
+  // that matters, however happily `model_info` lowers for it.
   assert_true(
-    registry.endpoint(provider="openrouter", model="qwen/qwen3.7-max", key="sk")
-    is Ok(_),
+    base.model_info(provider="openrouter", model="deepseek/deepseek-v9")
+    is Some(_),
   )
   assert_true(
-    base.endpoint(provider="openrouter", model="qwen/qwen3.7-max", key="sk")
+    base.endpoint(provider="openrouter", model="deepseek/deepseek-v9", key="sk")
     is Err(_),
   )
-  // with_provider appends, so the replaced provider moves to last.
-  assert_eq(
-    registry.providers[registry.providers.length() - 1].id,
-    "openrouter",
+  guard base.with_model(
+      provider="openrouter",
+      @llm.ModelInfo::permissive("deepseek/deepseek-v9"),
+    )
+    is Some(registry) else {
+    fail("openrouter is a provider this registry has")
+  }
+  assert_true(
+    registry.endpoint(
+      provider="openrouter",
+      model="deepseek/deepseek-v9",
+      key="sk",
+    )
+    is Ok(_),
+  )
+  assert_true(registry.dialect_of("openrouter:deepseek/deepseek-v9") is Some(_))
+
+  // And the predefined models are all still there, on this provider and the
+  // others — adding one is not forking the catalog.
+  assert_eq(registry.labels().length(), base.labels().length() + 1)
+  assert_true(
+    registry.endpoint(
+      provider="openrouter",
+      model="deepseek/deepseek-v4.1-flash",
+      key="sk",
+    )
+    is Ok(_),
+  )
+  assert_true(registry.dialect_of("anthropic:claude-sonnet-5") is Some(_))
+  assert_true(registry.dialect_of("openai:gpt-6-astra") is Some(_))
+  // The provider keeps its place, where `with_provider` would move it last.
+  assert_eq(registry.providers[base.providers.length() - 1].id, "openrouter")
+  assert_eq(registry.providers.map(p => p.id), base.providers.map(p => p.id))
+}
+
+///|
+/// Same id in, and the row replaces the permissive entry rather than
+/// doubling it — how a caller corrects a model this catalog lists too
+/// generously.
+test "catalog: adding a listed model replaces its row in place" {
+  let base = @catalog.default_registry()
+  let row = { ..@llm.ModelInfo::permissive("x-ai/grok-4.6"), reasoning: false, }
+  guard base.with_model(provider="openrouter", row) is Some(registry) else {
+    fail("openrouter is a provider this registry has")
+  }
+  assert_eq(registry.labels().length(), base.labels().length())
+  guard registry.model_info(provider="openrouter", model="x-ai/grok-4.6")
+    is Some(info) else {
+    fail("still listed")
+  }
+  assert_false(info.reasoning)
+}
+
+///|
+test "catalog: with_model on a provider that is not there says so" {
+  let base = @catalog.default_registry()
+  assert_true(
+    base.with_model(provider="opnrouter", @llm.ModelInfo::permissive("x"))
+    is None,
   )
 }

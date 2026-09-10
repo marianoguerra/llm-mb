@@ -526,6 +526,29 @@ pub fn Registry::with_provider(
 }
 
 ///|
+/// This registry with one more model on an existing provider — the escape
+/// hatch for a catalog that lists fewer models than a caller wants, without
+/// restating the twelve other fields of a `ProviderSpec` to get at one of
+/// them.
+///
+/// `None` when no provider has that id: a typo that silently added the model
+/// to nothing would be found later, at the one place an unlisted model is
+/// refused, and by then the id in the error is the model's rather than the
+/// provider's.
+///
+/// Replaces a model of the same id IN PLACE, which is how a row overrides a
+/// permissive entry, and leaves the provider at its index — where
+/// `with_provider` appends, moving it to the end of the selector.
+#declaration_only
+pub fn Registry::with_model(
+  self : Registry,
+  provider~ : String,
+  info : ModelInfo,
+) -> Registry? {
+  ...
+}
+
+///|
 /// This registry with one more wire protocol, for a dialect that ships
 /// outside the package holding the defaults.
 #declaration_only

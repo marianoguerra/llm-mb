@@ -26,6 +26,26 @@ pub fn Registry::with_provider(
 }
 
 ///|
+pub fn Registry::with_model(
+  self : Registry,
+  provider~ : String,
+  info : ModelInfo,
+) -> Registry? {
+  guard self.providers.search_by(p => p.id == provider) is Some(at) else {
+    return None
+  }
+  let spec = self.providers[at]
+  let models = spec.models.copy()
+  match models.search_by(m => m.id == info.id) {
+    Some(i) => models[i] = info
+    None => models.push(info)
+  }
+  let providers = self.providers.copy()
+  providers[at] = { ..spec, models, }
+  Some({ apis: self.apis, providers, })
+}
+
+///|
 pub fn Registry::with_api(self : Registry, spec : ApiSpec) -> Registry {
   let apis = self.apis.copy()
   apis[spec.id] = spec
