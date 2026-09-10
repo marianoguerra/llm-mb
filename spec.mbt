@@ -516,7 +516,9 @@ pub fn Registry::of(
 ///|
 /// This registry with one more provider — how a caller adds an
 /// OpenAI-compatible vendor without forking the catalog. Replaces a provider
-/// of the same id, so it is also how one is overridden.
+/// of the same id, so it is also how one is overridden, and replaces it AT
+/// ITS INDEX: overriding a provider's endpoint or credentials is not a
+/// request to move it in the model selector. A genuinely new one appends.
 #declaration_only
 pub fn Registry::with_provider(
   self : Registry,
@@ -537,8 +539,8 @@ pub fn Registry::with_provider(
 /// provider's.
 ///
 /// Replaces a model of the same id IN PLACE, which is how a row overrides a
-/// permissive entry, and leaves the provider at its index — where
-/// `with_provider` appends, moving it to the end of the selector.
+/// permissive entry, and leaves the provider at its index — the same rule
+/// `with_provider` follows for providers.
 #declaration_only
 pub fn Registry::with_model(
   self : Registry,

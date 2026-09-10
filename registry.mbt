@@ -20,8 +20,11 @@ pub fn Registry::with_provider(
   self : Registry,
   spec : ProviderSpec,
 ) -> Registry {
-  let providers = self.providers.filter(p => p.id != spec.id)
-  providers.push(spec)
+  let providers = self.providers.copy()
+  match providers.search_by(p => p.id == spec.id) {
+    Some(at) => providers[at] = spec
+    None => providers.push(spec)
+  }
   { apis: self.apis, providers, }
 }
 

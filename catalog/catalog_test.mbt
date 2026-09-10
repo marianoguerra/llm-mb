@@ -287,7 +287,7 @@ test "catalog: a consumer adds a model the catalog never listed" {
   )
   assert_true(registry.dialect_of("anthropic:claude-sonnet-5") is Some(_))
   assert_true(registry.dialect_of("openai:gpt-6-astra") is Some(_))
-  // The provider keeps its place, where `with_provider` would move it last.
+  // The provider keeps its place.
   assert_eq(registry.providers[base.providers.length() - 1].id, "openrouter")
   assert_eq(registry.providers.map(p => p.id), base.providers.map(p => p.id))
 }
@@ -317,4 +317,30 @@ test "catalog: with_model on a provider that is not there says so" {
     base.with_model(provider="opnrouter", @llm.ModelInfo::permissive("x"))
     is None,
   )
+}
+
+///|
+/// Overriding a shipped provider — a proxy in front of Anthropic, say — is a
+/// change of endpoint and not a request to move it in the model selector, so
+/// the replacement lands at the index the original held. A provider that is
+/// genuinely new still appends, because there is no index to keep.
+test "catalog: with_provider replaces at the index, adds at the end" {
+  let base = @catalog.default_registry()
+  guard base.provider("anthropic") is Some(spec) else { fail("anthropic") }
+  let order = base.providers.map(p => p.id)
+  let at = order.search_by(id => id == "anthropic").unwrap()
+  let proxied = base.with_provider({
+    ..spec,
+    endpoint: "http://localhost:8080/v1/messages",
+  })
+  assert_eq(proxied.providers.map(p => p.id), order)
+  assert_eq(proxied.providers[at].endpoint, "http://localhost:8080/v1/messages")
+  guard proxied.endpoint(provider="anthropic", model="claude-sonnet-5", key="k")
+    is Ok((url, _)) else {
+    fail("the override should still resolve")
+  }
+  assert_eq(url, "http://localhost:8080/v1/messages")
+  let added = base.with_provider({ ..spec, id: "anthropic-eu", })
+  assert_eq(added.providers.length(), base.providers.length() + 1)
+  assert_eq(added.providers[added.providers.length() - 1].id, "anthropic-eu")
 }

@@ -96,8 +96,8 @@ let registry = @catalog.default_registry()
 Every predefined model stays; this adds one beside them. `None` means no
 provider has that id. Passing a model the provider already lists replaces that
 row in place, which is how a caller narrows a `permissive` entry to what a
-model actually accepts, and the provider keeps its position in the selector
-where `with_provider` would move it to the end.
+model actually accepts, and the provider keeps its position in the selector —
+the same rule `with_provider` follows.
 
 This matters because `Registry::endpoint` refuses a model the provider does
 not list — `model_info` will happily lower a turn for an unknown id, on the
