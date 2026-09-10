@@ -43,6 +43,51 @@ true by default; `just check` covers native too, and `just targets-check`
 fails if any *importable* package but `wire` picks up a target restriction.
 `cmd/smoke` is native and exempt, because nothing can import an executable.
 
+## Models
+
+`@catalog.default_registry()` ships the two newest of each size group per
+provider. The group is a tier within a vendor's own lineup rather than a
+parameter count — Anthropic's fable/opus/sonnet/haiku ladder is the shape of
+it, and gpt-5.6's sol/terra/luna is the same ladder under other names.
+
+Defaults are **bold**; `LLM_<PROVIDER>_MODEL` names another.
+
+| Provider | xl | lg | md | sm |
+|---|---|---|---|---|
+| `openai` | `gpt-6-astra` `gpt-5.5-pro` | **`gpt-5.6-sol`** `gpt-5.5` | `gpt-5.6-terra` `gpt-5.3-codex` | `gpt-5.6-luna` `gpt-5.4-mini` |
+| `anthropic` | `claude-fable-5-1` `claude-fable-5` | `claude-opus-5` `claude-opus-4-8` | **`claude-sonnet-5`** `claude-sonnet-4-6` | `claude-haiku-4-5` |
+| `gemini` | — | `gemini-3.1-pro-preview` `gemini-2.5-pro` | **`gemini-3.8-flash`** `gemini-3.7-flash` | `gemini-3.5-flash-lite` `gemini-3.1-flash-lite` |
+| `cerebras` | — | — | **`gpt-oss-120b`** | `qwen-3.8-27b` `gemma-4-31b` |
+
+`gpt-5.6`, `gemini-flash-latest` and `gemini-flash-lite-latest` are listed
+beside those and not counted among them: rolling aliases that follow the
+newest of their tier instead of pinning one, which is a different choice from
+naming a version rather than another model.
+
+`openrouter` counts per model FAMILY, being a dozen vendors behind one
+endpoint — as a single list it would keep two Qwens and drop Grok entirely.
+Ids carry the family, so the label is `openrouter:x-ai/grok-4.6`.
+
+| Family | Models |
+|---|---|
+| `qwen/` | `qwen3.8-max-0902` `qwen3.8-2.4t-a95b` `qwen3.7-plus` `qwen3-coder-next` `qwen3.8-flash` `qwen3.7-flash` |
+| `deepseek/` | `deepseek-v4-pro-0813` `deepseek-v4-pro` `deepseek-v4.1-flash` `deepseek-v4-flash-vision-exp` |
+| `moonshotai/` | `kimi-k3` `kimi-k2.7-code` `kimi-k2.6` |
+| `z-ai/` | `glm-5.3` `glm-5.2` `glm-5.3-flash` |
+| `x-ai/` | `grok-4.6` `grok-4.5` |
+| `meta/` | `muse-spark-1.3` `muse-spark-1.2` |
+| `tencent/` | `hy4-preview` `hy3` |
+| `thinkingmachines/` | `inkling` `inkling-small` |
+| `minimax/` | `minimax-m3` |
+| `mistralai/` | `mistral-medium-3-5` |
+| `openai/` | **`gpt-5.4-mini`** |
+
+A curation and not a limit — [Adding a model](#adding-a-model) is one line for
+anything a provider serves and this list leaves out. Capabilities are a
+separate question from the list: `llm/openai` carries a probed table of which
+reasoning levels each of its models actually accepts, and everything else is
+`ModelInfo::permissive` until somebody measures one.
+
 ## What is NOT here
 
 No agent loop, no tool executor, no session store, no prompt templating. This
