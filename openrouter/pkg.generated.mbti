@@ -16,7 +16,14 @@ pub fn api_spec() -> @llm.ApiSpec
 pub(all) struct OpenRouterDialect {
   inner : @openai.OpenAiDialect
 } derive(@debug.Debug)
+pub fn OpenRouterDialect::id(Self) -> String
+pub fn OpenRouterDialect::lift_message(Self, Json) -> @llm.ContextMessage raise @llm.DialectError
+pub fn OpenRouterDialect::lower_context(Self, @llm.LlmContext) -> Json
 pub fn OpenRouterDialect::make(model? : String, info? : @llm.ModelInfo) -> Self
+pub fn OpenRouterDialect::model(Self) -> String
+pub fn OpenRouterDialect::stream_feed(Self, @llm.StreamState, chunk~ : String) -> (@llm.StreamState, Array[@llm.StreamEvent]) raise @llm.DialectError
+pub fn OpenRouterDialect::stream_finish(Self, @llm.StreamState) -> @llm.ContextMessage raise @llm.DialectError
+pub fn OpenRouterDialect::stream_init(Self) -> @llm.StreamState
 pub impl @llm.Dialect for OpenRouterDialect
 
 // Type aliases

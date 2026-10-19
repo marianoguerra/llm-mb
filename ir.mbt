@@ -3,10 +3,10 @@
 
 ///|
 pub fn Usage::make(
-  input~ : Int,
-  output~ : Int,
-  cache_read? : Int = 0,
-  cache_write? : Int = 0,
+  input~ : Int32,
+  output~ : Int32,
+  cache_read~ : Int32 = 0,
+  cache_write~ : Int32 = 0,
 ) -> Usage {
   { input, output, cache_read, cache_write, }
 }

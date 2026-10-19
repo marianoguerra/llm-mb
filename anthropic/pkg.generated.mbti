@@ -14,9 +14,16 @@ pub fn api_spec() -> @llm.ApiSpec
 // Types and methods
 pub(all) struct AnthropicDialect {
   model : String
-  max_tokens : Int
+  max_tokens : Int32
 } derive(@debug.Debug)
-pub fn AnthropicDialect::make(model? : String, max_tokens? : Int) -> Self
+pub fn AnthropicDialect::id(Self) -> String
+pub fn AnthropicDialect::lift_message(Self, Json) -> @llm.ContextMessage raise @llm.DialectError
+pub fn AnthropicDialect::lower_context(Self, @llm.LlmContext) -> Json
+pub fn AnthropicDialect::make(model? : String, max_tokens? : Int32) -> Self
+pub fn AnthropicDialect::model(Self) -> String
+pub fn AnthropicDialect::stream_feed(Self, @llm.StreamState, chunk~ : String) -> (@llm.StreamState, Array[@llm.StreamEvent]) raise @llm.DialectError
+pub fn AnthropicDialect::stream_finish(Self, @llm.StreamState) -> @llm.ContextMessage raise @llm.DialectError
+pub fn AnthropicDialect::stream_init(Self) -> @llm.StreamState
 pub impl @llm.Dialect for AnthropicDialect
 
 // Type aliases

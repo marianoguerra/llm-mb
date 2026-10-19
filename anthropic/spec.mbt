@@ -5,14 +5,14 @@
 ///|
 pub(all) struct AnthropicDialect {
   model : String
-  max_tokens : Int
+  max_tokens : Int32
 } derive(Debug)
 
 ///|
 #declaration_only
 pub fn AnthropicDialect::make(
   model? : String,
-  max_tokens? : Int,
+  max_tokens? : Int32,
 ) -> AnthropicDialect {
   ...
 }
@@ -28,3 +28,19 @@ pub fn AnthropicDialect::make(
 pub fn api_spec() -> @llm.ApiSpec {
   ...
 }
+
+///|
+pub extend AnthropicDialect with @llm.Dialect::{
+  model,
+  id,
+  stream_finish,
+  stream_feed,
+  stream_init,
+  lift_message,
+  lower_context,
+}
+
+///|
+#deprecated(skip_current_package=true)
+#doc(hidden)
+pub extend AnthropicDialect with Debug::{to_repr}

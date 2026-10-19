@@ -44,10 +44,17 @@ spec-check:
         pkg=$(dirname "$spec")
         mbti="$pkg/pkg.generated.mbti"
         [ -f "$mbti" ] || continue
+        # A `pub extend T with Trait::{a, b}` declares `T::a` and `T::b`.
+        extended=$(tr '\n' ' ' < "$spec" \
+            | grep -oE 'pub extend [A-Za-z_][A-Za-z0-9_]* with [A-Za-z0-9_@.]+::\{[^}]*\}' \
+            | sed -E 's/^pub extend ([A-Za-z0-9_]+) with [^{]*\{([^}]*)\}/\1 \2/' \
+            | while read -r ty methods; do
+                for m in $(echo "$methods" | tr ',' ' '); do echo "$ty::$m"; done
+              done)
         missing=""
         while read -r name; do
             [ -n "$name" ] || continue
-            grep -qF "$name" "$spec" || missing="$missing $name"
+            grep -qF "$name" "$spec" || grep -qxF "$name" <<< "$extended" || missing="$missing $name"
         done < <(grep -oE '^pub fn [A-Za-z_][A-Za-z0-9_]*(::[A-Za-z_][A-Za-z0-9_]*)?' "$mbti" \
                  | sed 's/^pub fn //' | sort -u)
         if [ -n "$missing" ]; then

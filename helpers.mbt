@@ -89,3 +89,8 @@ pub fn reply_identity(reply : Json, fallback~ : String) -> (String, String?) {
   }
   (model, response_id)
 }
+
+///|
+#deprecated(skip_current_package=true)
+#doc(hidden)
+pub extend DialectError with Show::{output}

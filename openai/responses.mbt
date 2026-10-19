@@ -406,3 +406,19 @@ pub impl @llm.Dialect for OpenAiResponsesDialect with fn lift_message(
   }
   AssistantMsg(content=blocks, stop~, model~, response_id~, usage~, error~)
 }
+
+///|
+#deprecated(skip_current_package=true)
+#doc(hidden)
+pub extend OpenAiResponsesDialect with Debug::{to_repr}
+
+///|
+pub extend OpenAiResponsesDialect with @llm.Dialect::{
+  model,
+  id,
+  stream_finish,
+  stream_feed,
+  stream_init,
+  lift_message,
+  lower_context,
+}

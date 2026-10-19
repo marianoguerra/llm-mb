@@ -243,3 +243,19 @@ pub fn api_spec() -> @llm.ApiSpec {
     caps: id => @llm.ModelInfo::permissive(id),
   }
 }
+
+///|
+#deprecated(skip_current_package=true)
+#doc(hidden)
+pub extend GeminiDialect with Debug::{to_repr}
+
+///|
+pub extend GeminiDialect with @llm.Dialect::{
+  model,
+  id,
+  stream_finish,
+  stream_feed,
+  stream_init,
+  lift_message,
+  lower_context,
+}

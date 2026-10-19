@@ -1,7 +1,7 @@
 ///|
 pub fn AnthropicDialect::make(
   model? : String,
-  max_tokens? : Int,
+  max_tokens? : Int32,
 ) -> AnthropicDialect {
   {
     model: model.unwrap_or("claude-sonnet-5"),

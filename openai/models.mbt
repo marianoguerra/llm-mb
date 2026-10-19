@@ -32,8 +32,8 @@ fn row(
   efforts~ : Array[(@llm.ThinkingLevel, String)],
   supports_pro_mode~ : Bool,
   contexts~ : Array[@llm.ReasoningContext],
-  context_window~ : Int,
-  max_output_tokens~ : Int?,
+  context_window~ : Int32,
+  max_output_tokens~ : Int32?,
 ) -> @llm.ModelInfo {
   {
     id,

@@ -353,7 +353,7 @@ test "openai lower_context: the output cap is clamped to the model's own" {
   let d = @openai.OpenAiDialect::make(model="gpt-oss-120b", info=oss_row())
   // -1 rather than a `fail`, so the assertion below names the number that
   // was wrong instead of the lookup that missed.
-  fn cap_for(want : Int) -> Double {
+  fn cap_for(want : Int32) -> Double {
     let asked = { ..@llm.LlmParams::default(), max_output_tokens: Some(want), }
     guard @llm.Dialect::lower_context(d, params_ctx(asked))
       is { "max_completion_tokens": Number(n, ..), .. } else {

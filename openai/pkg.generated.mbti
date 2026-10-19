@@ -22,13 +22,27 @@ pub(all) struct OpenAiDialect {
   model : String
   info : @llm.ModelInfo
 } derive(@debug.Debug)
+pub fn OpenAiDialect::id(Self) -> String
+pub fn OpenAiDialect::lift_message(Self, Json) -> @llm.ContextMessage raise @llm.DialectError
+pub fn OpenAiDialect::lower_context(Self, @llm.LlmContext) -> Json
 pub fn OpenAiDialect::make(model? : String, info? : @llm.ModelInfo) -> Self
+pub fn OpenAiDialect::model(Self) -> String
+pub fn OpenAiDialect::stream_feed(Self, @llm.StreamState, chunk~ : String) -> (@llm.StreamState, Array[@llm.StreamEvent]) raise @llm.DialectError
+pub fn OpenAiDialect::stream_finish(Self, @llm.StreamState) -> @llm.ContextMessage raise @llm.DialectError
+pub fn OpenAiDialect::stream_init(Self) -> @llm.StreamState
 pub impl @llm.Dialect for OpenAiDialect
 
 pub(all) struct OpenAiResponsesDialect {
   model : String
 } derive(@debug.Debug)
+pub fn OpenAiResponsesDialect::id(Self) -> String
+pub fn OpenAiResponsesDialect::lift_message(Self, Json) -> @llm.ContextMessage raise @llm.DialectError
+pub fn OpenAiResponsesDialect::lower_context(Self, @llm.LlmContext) -> Json
 pub fn OpenAiResponsesDialect::make(model? : String) -> Self
+pub fn OpenAiResponsesDialect::model(Self) -> String
+pub fn OpenAiResponsesDialect::stream_feed(Self, @llm.StreamState, chunk~ : String) -> (@llm.StreamState, Array[@llm.StreamEvent]) raise @llm.DialectError
+pub fn OpenAiResponsesDialect::stream_finish(Self, @llm.StreamState) -> @llm.ContextMessage raise @llm.DialectError
+pub fn OpenAiResponsesDialect::stream_init(Self) -> @llm.StreamState
 pub impl @llm.Dialect for OpenAiResponsesDialect
 
 // Type aliases

@@ -12,7 +12,7 @@ impl LlmTransport with fn abort(_self : Self, handle~ : String) -> Unit {
 ///|
 pub fn RelayTransport::make(
   post~ : (String, String, String, (String) -> Unit, (String) -> Unit) -> Unit,
-  stop? : (String) -> Unit = _ => (),
+  stop~ : (String) -> Unit = _ => (),
 ) -> RelayTransport {
   { post, stop, }
 }

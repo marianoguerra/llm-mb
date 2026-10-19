@@ -15,7 +15,14 @@ pub fn api_spec() -> @llm.ApiSpec
 pub(all) struct GeminiDialect {
   model : String
 } derive(@debug.Debug)
+pub fn GeminiDialect::id(Self) -> String
+pub fn GeminiDialect::lift_message(Self, Json) -> @llm.ContextMessage raise @llm.DialectError
+pub fn GeminiDialect::lower_context(Self, @llm.LlmContext) -> Json
 pub fn GeminiDialect::make(model? : String) -> Self
+pub fn GeminiDialect::model(Self) -> String
+pub fn GeminiDialect::stream_feed(Self, @llm.StreamState, chunk~ : String) -> (@llm.StreamState, Array[@llm.StreamEvent]) raise @llm.DialectError
+pub fn GeminiDialect::stream_finish(Self, @llm.StreamState) -> @llm.ContextMessage raise @llm.DialectError
+pub fn GeminiDialect::stream_init(Self) -> @llm.StreamState
 pub impl @llm.Dialect for GeminiDialect
 
 // Type aliases

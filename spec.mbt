@@ -41,19 +41,19 @@ pub(all) enum StopReason {
 
 ///|
 pub(all) struct Usage {
-  input : Int
-  output : Int
-  cache_read : Int
-  cache_write : Int
+  input : Int32
+  output : Int32
+  cache_read : Int32
+  cache_write : Int32
 } derive(Eq, Debug, ToJson)
 
 ///|
 #declaration_only
 pub fn Usage::make(
-  input~ : Int,
-  output~ : Int,
-  cache_read? : Int = 0,
-  cache_write? : Int = 0,
+  input~ : Int32,
+  output~ : Int32,
+  cache_read~ : Int32 = 0,
+  cache_write~ : Int32 = 0,
 ) -> Usage {
   ...
 }
@@ -142,7 +142,7 @@ pub(all) struct LlmParams {
   // Reasoning summaries are opt-in and cost tokens; the chain replays either
   // way, since what replays is the opaque item and not the summary.
   reasoning_summary : Bool
-  max_output_tokens : Int?
+  max_output_tokens : Int32?
   // Usually the session id: a stable key is what lets the provider find the
   // prefix it cached for this conversation.
   cache_key : String?
@@ -165,6 +165,9 @@ pub fn LlmParams::default() -> LlmParams {
 pub fn ThinkingLevel::parse(s : String) -> ThinkingLevel? {
   ...
 }
+
+///|
+pub extend ThinkingLevel with Compare::{compare}
 
 ///|
 /// Parse a retention setting: "none" | "short" | "long".
@@ -235,10 +238,10 @@ pub(all) struct ModelInfo {
   supports_pro_mode : Bool
   reasoning_contexts : Array[ReasoningContext]
   input : Array[Modality]
-  context_window : Int
+  context_window : Int32
   // None where the ceiling is unknown — a model this table has not met is
   // asked for whatever the caller wanted rather than being silently trimmed.
-  max_output_tokens : Int?
+  max_output_tokens : Int32?
   cost : Cost?
 } derive(Debug, ToJson)
 
@@ -294,6 +297,9 @@ pub fn ModelInfo::accepts(self : ModelInfo, modality : Modality) -> Bool {
 pub(all) suberror DialectError {
   MalformedReply(String)
 } derive(Debug, ToJson)
+
+///|
+pub extend DialectError with Show::{to_string}
 
 ///|
 /// Accumulator threaded through incremental decoding. A dialect that decodes
@@ -423,6 +429,9 @@ pub fn RelayTransport::make(
 ) -> RelayTransport {
   ...
 }
+
+///|
+pub extend RelayTransport with LlmTransport::{abort, send}
 
 // --- the registry -----------------------------------------------------------
 

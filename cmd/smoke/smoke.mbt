@@ -83,7 +83,7 @@ fn ping_tool() -> @llm.ToolDecl {
 /// clamps to whatever the model's own row says is least — `minimal` on
 /// gpt-5-mini, `low` on gpt-oss-120b — so this is "cheapest available"
 /// rather than a level anyone has to have.
-fn frugal(cap : Int) -> @llm.LlmParams {
+fn frugal(cap : Int32) -> @llm.LlmParams {
   {
     ..@llm.LlmParams::default(),
     effort: Some(Off),
@@ -303,7 +303,7 @@ async fn exercise(
 /// twenty lines of event-loop frames on top of the four that say why. libc's
 /// own `exit` is reachable because this package is native by construction,
 /// which is the one thing being an executable here buys.
-extern "c" fn exit_process(code : Int) -> Unit = "exit"
+extern "c" fn exit_process(code : Int32) -> Unit = "exit"
 
 ///|
 async fn main {

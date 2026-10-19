@@ -54,3 +54,6 @@ pub impl @llm.LlmTransport for HttpTransport with fn send(
     on_done()
   })
 }
+
+///|
+pub extend HttpTransport with @llm.LlmTransport::{abort, send}

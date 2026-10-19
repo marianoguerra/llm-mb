@@ -399,7 +399,7 @@ test "responses lower_context: pro mode and persisted reasoning are dropped wher
 /// The cap is the caller's, bounded by the model's — and never below the 16
 /// the API refuses, which is a mistake rather than an intent.
 test "responses lower_context: the output cap is clamped to the model's" {
-  fn cap_of(model : String, want : Int) -> Json {
+  fn cap_of(model : String, want : Int32) -> Json {
     guard! lower_with(model, {
         ..@llm.LlmParams::default(),
         max_output_tokens: Some(want),
